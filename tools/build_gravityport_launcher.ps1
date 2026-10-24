@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 # Build a native, local Windows GravityPort preview; no console/game data included.
 param(
-    [ValidateSet("GravityPort Preview","GravityPort 120Hz Lab","GravityPort Main 120FPS Candidate","GravityPort Graphics Lab")]
+    [ValidateSet("GravityPort Preview","GravityPort 120Hz Lab","GravityPort Main 120FPS Candidate","GravityPort Main DLSS Candidate","GravityPort Graphics Lab")]
     [string]$PreviewName = "GravityPort Preview",
     [string]$GraphicsAssets = ""
 )
@@ -73,8 +73,8 @@ if ($LASTEXITCODE -ne 0) {throw "Collecting third-party licenses failed"}
 if ($GraphicsAssets) {
     # Experimental, local-only. Never put NVIDIA binaries or FSR4 model blobs
     # into Git. Public release distribution needs a separate license review.
-    if ($PreviewName -ne "GravityPort Graphics Lab") {
-        throw "GraphicsAssets can only be staged into the isolated Graphics Lab"
+    if ($PreviewName -notin @("GravityPort Graphics Lab","GravityPort Main DLSS Candidate")) {
+        throw "GraphicsAssets are only allowed for the isolated Graphics Lab or a verified Main DLSS Candidate"
     }
     $Source = (Resolve-Path -LiteralPath $GraphicsAssets).Path
     $DlssFolder = Join-Path $Source "bin"
@@ -92,7 +92,8 @@ if ($GraphicsAssets) {
     $vendorLicense = Join-Path $DlssFolder "NVIDIA-DLSS-SDK-LICENSE.txt"
     if (-not (Test-Path $vendorLicense)) {throw "The NVIDIA SDK license notice is missing"}
     Copy-Item $vendorLicense (Join-Path $Preview "THIRD-PARTY-LICENSES")
-    if (Test-Path $ModelFolder) {
+    if ((Test-Path $ModelFolder) -and $PreviewName -eq "GravityPort Graphics Lab") {
+        # Keep the unapproved FSR4 v07 model entirely out of the stable main.
         Copy-Item -LiteralPath $ModelFolder -Destination (Join-Path $Preview "fsr4_shaders") -Recurse
         if (-not (Test-Path (Join-Path $Preview "fsr4_shaders\LICENSE-FSR4-v07.txt"))) {
             throw "FSR4 model license notice missing"
@@ -100,10 +101,14 @@ if ($GraphicsAssets) {
     }
     $DocFolder = Join-Path $Preview "docs"
     New-Item -ItemType Directory -Path $DocFolder -Force | Out-Null
-    foreach ($name in @("GRAPHICS_LAB_DLSS_FSR4.md","DLSS_FRAMEGEN_VULKAN.md")) {
-        Copy-Item -LiteralPath (Join-Path $Root "docs\$name") -Destination $DocFolder -Force
+    if ($PreviewName -eq "GravityPort Graphics Lab") {
+        foreach ($name in @("GRAPHICS_LAB_DLSS_FSR4.md","DLSS_FRAMEGEN_VULKAN.md")) {
+            Copy-Item -LiteralPath (Join-Path $Root "docs\$name") -Destination $DocFolder -Force
+        }
+    } else {
+        Copy-Item -LiteralPath (Join-Path $Root "docs\MAIN_DLSS_LOCAL.md") -Destination $DocFolder -Force
     }
-    Write-Host "LOCAL_GRAPHICS_LAB_ONLY_DLSS_SDK" $sig.SignerCertificate.Subject
+    Write-Host "LOCAL_SIGNED_DLSS_SDK" $sig.SignerCertificate.Subject
 }
 # Direct-play GravityPort.exe, with its own icon, launches the same frozen
 # GravityPort Launcher.exe with --play; no console/game files are embedded.

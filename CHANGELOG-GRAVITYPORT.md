@@ -61,3 +61,19 @@
   ou as preferencias de controle; instalacao anterior arquivada.
 - Provas A/B, testes automatizados e roteiros tecnicos em
   docs/HIGH_REFRESH_LAB.md. Usar 60 FPS se houver regressao.
+
+## DLSS Super Resolution no principal (instalacao local, 24/10/2026)
+
+- DLSS Super Resolution aprovado pelo jogador no Graphics Lab; promovido ao
+  aplicativo nativo principal do Frontlier, com DLSS instalado localmente.
+- Instala apenas a ponte Vulkan criada com o SDK NVIDIA e a DLL oficial NGX
+  assinada; nao copia modelos FSR4 experimentais nem arquivos do jogo.
+- Quando o usuario escolhe DLSS e a DLL esta instalada, o launcher reserva
+  ate 25 segundos para inicializar o NGX; os demais modos preservam o comportamento anterior.
+- Mantem 120 FPS apresentados / VBlank 60 Hz do PS4 e as configuracoes de
+  controle, saves, sombras e tela cheia existentes.
+- DLAA (resolucao nativa) no primeiro teste; DLSS Quality pode ser escolhido
+  separadamente em Video. O DLSS Frame Generation ainda NAO foi implementado.
+- Inclui suite de regressao, smoke test nativo com perfil isolado,
+  copia de rollback e orientacoes em docs/MAIN_DLSS_LOCAL.md.
+- Nenhuma DLL proprietaria ou arquivo do jogo publicado no GitHub.

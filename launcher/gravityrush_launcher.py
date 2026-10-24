@@ -434,9 +434,13 @@ def game_environment(s):
         env['GOW3_GYRO_SENS'] = str(s['gyro_sens'])
     env['GOW3_GYRO_STICK'] = '1' if s.get('xinput_gyro_stick', False) else '0'
     env['GOW3_XINPUT_TOUCHPAD'] = '1' if s.get('xinput_touchpad_combo', True) else '0'
-    if GRAPHICS_LAB_BUILD:
-        # NVIDIA NGX may need more than the stock 8 seconds on a cold start.
-        # Never increase the wait in production until it is tested broadly.
+    if (GRAPHICS_LAB_BUILD or
+            (load_ini()[0].get('upscaler') == 'dlss' and
+             (PORT_DIR / 'bin' / 'nvngx_dlss.dll').is_file())):
+        # Verified on the Frontlier RTX 5070: NGX sometimes takes more than
+        # eight seconds to initialize on first launch. Only the lab or a
+        # main installation with DLSS selected and installed gets 25 seconds.
+        # All other upscalers retain the original watchdog and fallback.
         env['GOW3_DLSS_INIT_TIMEOUT_SECONDS'] = '25'
     # In the active Frontlier session, VideoOut used 60-Hz guest VBlank and
     # the present limiter was raised from 60 to 120, yielding ~120 FPS.
