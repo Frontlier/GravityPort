@@ -76,3 +76,23 @@ depende do profiling para rodar.
 
 O fork é mantido como repositório separado; a cópia original já funcional em
 `Documents/Gravity Rush PC Port/gravityrush_pc` não será sobrescrita.
+
+
+## Laboratório de upscaling DLSS / FSR 4 (branch experimental)
+
+O trabalho de upscaling NVIDIA DLSS Super Resolution e FSR 4 v07
+Vulkan está isolado na branch `feature/dlss-fg-fsr4-vulkan`.
+Em testes de boot/demo no Frontlier, os dois recursos iniciaram seus
+processadores reais e registraram 120 FPS apresentados após aquecimento.
+Ainda é necessário comparar a imagem em gameplay. A implementação
+**não está habilitada no GravityPort principal**.
+
+O gerador de quadros DLSS-G via Vulkan/Streamline **ainda não foi
+implementado** e não deve ser confundido com DLSS Super Resolution.
+A NVIDIA oferece o Smooth Motion no driver para títulos Vulkan como
+solução provisória, mas é uma tecnologia diferente do DLSS-G.
+
+Detalhes: `docs/GRAPHICS_LAB_DLSS_FSR4.md` e
+`docs/DLSS_FRAMEGEN_VULKAN.md`. O aplicativo nativo local foi criado
+separadamente em `out/GravityPort Graphics Lab` e precisa de DLLs
+NVIDIA assinadas e modelos FSR4 locais que **não são versionados**.

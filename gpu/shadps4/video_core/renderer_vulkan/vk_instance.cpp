@@ -13,6 +13,7 @@
 #include "sdl_window.h"
 #include "video_core/renderer_vulkan/liverpool_to_vk.h"
 #include "video_core/renderer_vulkan/vk_dlss.h"
+#include "video_core/renderer_vulkan/vk_framegen_poc.h"
 #include "video_core/renderer_vulkan/vk_instance.h"
 #include "video_core/renderer_vulkan/vk_platform.h"
 
@@ -686,6 +687,11 @@ bool Instance::CreateDevice() {
     device = std::move(dev);
 
     VULKAN_HPP_DEFAULT_DISPATCHER.init(*device);
+    // Only active with the isolated FrameGen PoC build and opt-in environment
+    // setting. This is support detection, not actual frame interpolation.
+    FrameGenPoc::VerifyDevice(static_cast<VkInstance>(*instance),
+                              static_cast<VkPhysicalDevice>(physical_device),
+                              static_cast<VkDevice>(*device));
     pipeline_binaries =
         InitializePipelineBinaryCache(*device, pipeline_binaries, pipeline_binary_global_key);
     if (Dlss* dlss = Dlss::Get()) {

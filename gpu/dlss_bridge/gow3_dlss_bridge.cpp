@@ -115,12 +115,14 @@ int32_t Initialize(VkInstance instance, VkPhysicalDevice physical, VkDevice devi
                    PFN_vkGetDeviceProcAddr get_device_proc) {
     if (!state.configured || state.initialized)
         return 0;
+    Log(0, "NGX Vulkan init entered (driver/plugin startup)");
     if (!Check("NGX initialization",
                NVSDK_NGX_VULKAN_Init_with_ProjectID(
                    ProjectId, NVSDK_NGX_ENGINE_TYPE_CUSTOM, EngineVersion,
                    state.data_directory.c_str(), instance, physical, device, get_instance_proc,
                    get_device_proc, &state.common)))
         return 0;
+    Log(0, "NGX Vulkan init completed; querying capabilities");
     state.initialized = true;
     state.device = device;
     if (!Check("Capability query", NVSDK_NGX_VULKAN_GetCapabilityParameters(&state.capabilities)))

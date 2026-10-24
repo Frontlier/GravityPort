@@ -23,6 +23,7 @@
 #include "sdl_window.h"
 #include "video_core/renderer_vulkan/vk_platform.h"
 #include "video_core/renderer_vulkan/vk_dlss.h"
+#include "video_core/renderer_vulkan/vk_framegen_poc.h"
 
 #ifdef __APPLE__
 #include <mach-o/dyld.h>
@@ -272,8 +273,13 @@ vk::UniqueInstance CreateInstance(Frontend::WindowSystemType window_type, bool e
 #endif
 
     static vk::detail::DynamicLoader dl;
+    // Optional Streamline Vulkan proxy, only in the isolated FrameGen PoC.
+    // Default execution retains the exact original Vulkan loader.
+    auto* const framegen_proc = window_type == Frontend::WindowSystemType::Headless
+                                    ? nullptr : FrameGenPoc::TryLoadStreamline();
     VULKAN_HPP_DEFAULT_DISPATCHER.init(
-        dl.getProcAddress<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr"));
+        framegen_proc ? framegen_proc :
+                        dl.getProcAddress<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr"));
 
     const auto [available_version_result, available_version] =
         VULKAN_HPP_DEFAULT_DISPATCHER.vkEnumerateInstanceVersion

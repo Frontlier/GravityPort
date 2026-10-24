@@ -298,8 +298,13 @@ bool TemporalUpscaler::OnFrameStart() {
     const auto& settings = Gow3Settings::Get();
     // The guest's startup resolution patch remains in effect until restart. Keep the FSR
     // model at the applied preset while the menu saves the requested one for run.sh.
-    // Gravity Rush draws at its own (patched) resolution: native AA only.
-    const int preset = gravity_rush ? int(Gow3Settings::NativeAA) : Gow3Settings::RenderPreset();
+    // Gravity Rush draws at its startup-patched 720p resolution. FSR4 needs
+    // the model preset matching that render scale (Quality = 1), rather than
+    // NativeAA (0), otherwise the provider looks for missing 'native' assets.
+    // Keep the original fixed-preset behavior for FSR3 and DLSS.
+    const int preset = gravity_rush && !Gow3Settings::IsFsr4(settings.upscaler)
+                           ? int(Gow3Settings::NativeAA)
+                           : Gow3Settings::RenderPreset();
     if (applied_preset != preset || settings.upscaler == Gow3Settings::UpscalerOff) failed = false;
     const bool active = Active();
     const bool jitter_on = active && settings.jitter && !Gow3Toggle::Disabled(1u << 25);
@@ -589,7 +594,70 @@ void TemporalUpscaler::FinishUpscale() {
     const auto next_jitter = jitter;
     jitter = f.jitter;
     bool ok = false;
-    if (UseDlss()) {
+    if (UseFsr4()) {
+        // Gravity Rush's specialized path hands us its already-tonemapped
+        // 8-bit UNORM image, but the FSR4 v07 Vulkan provider needs
+        // R16G16B16A16_FLOAT color and output. Convert explicitly rather
+        // than passing an RGBA8 view tagged as float (invalid descriptors).
+        // The existing persistent opaque_image/output_image are only reused
+        // when FSR4 is selected; the reactive-mask FSR3 code is disabled.
+        const auto src_region = vk::ImageBlit{
+            .srcSubresource = {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
+            .srcOffsets = std::array{vk::Offset3D{0, 0, 0},
+                                     vk::Offset3D{s32(f.width), s32(f.height), 1}},
+            .dstSubresource = {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
+            .dstOffsets = std::array{vk::Offset3D{0, 0, 0},
+                                     vk::Offset3D{s32(f.width), s32(f.height), 1}},
+        };
+        barrier(vk::Image(slot.pre_hud), vk::ImageLayout::eGeneral,
+                all, vk::AccessFlagBits2::eShaderRead,
+                vk::ImageLayout::eTransferSrcOptimal, vk::PipelineStageFlagBits2::eTransfer,
+                vk::AccessFlagBits2::eTransferRead);
+        barrier(vk::Image(opaque_image), vk::ImageLayout::eUndefined,
+                all, vk::AccessFlagBits2::eNone,
+                vk::ImageLayout::eTransferDstOptimal, vk::PipelineStageFlagBits2::eTransfer,
+                vk::AccessFlagBits2::eTransferWrite);
+        cmdbuf.blitImage(vk::Image(slot.pre_hud), vk::ImageLayout::eTransferSrcOptimal,
+                         vk::Image(opaque_image), vk::ImageLayout::eTransferDstOptimal,
+                         src_region, vk::Filter::eNearest);
+        barrier(vk::Image(opaque_image), vk::ImageLayout::eTransferDstOptimal,
+                vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferWrite,
+                vk::ImageLayout::eGeneral, all, vk::AccessFlagBits2::eShaderRead);
+        barrier(vk::Image(output_image), vk::ImageLayout::eUndefined,
+                all, vk::AccessFlagBits2::eNone,
+                vk::ImageLayout::eGeneral, all, rw);
+        ok = RecordFsr4(cmdbuf,
+                        {vk::Image(opaque_image), *opaque_view, f.width, f.height},
+                        {depth.GetImage(), depth_view, f.width, f.height},
+                        f.width, f.height, f.out_width, f.out_height, f.frame_ms);
+        if (ok) {
+            const auto dst_region = vk::ImageBlit{
+                .srcSubresource = {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
+                .srcOffsets = std::array{vk::Offset3D{0, 0, 0},
+                                         vk::Offset3D{s32(f.out_width), s32(f.out_height), 1}},
+                .dstSubresource = {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
+                .dstOffsets = std::array{vk::Offset3D{0, 0, 0},
+                                         vk::Offset3D{s32(f.out_width), s32(f.out_height), 1}},
+            };
+            barrier(vk::Image(output_image), vk::ImageLayout::eGeneral,
+                    all, vk::AccessFlagBits2::eShaderWrite,
+                    vk::ImageLayout::eTransferSrcOptimal, vk::PipelineStageFlagBits2::eTransfer,
+                    vk::AccessFlagBits2::eTransferRead);
+            barrier(vk::Image(slot.upscaled), vk::ImageLayout::eGeneral,
+                    all, vk::AccessFlagBits2::eNone,
+                    vk::ImageLayout::eTransferDstOptimal, vk::PipelineStageFlagBits2::eTransfer,
+                    vk::AccessFlagBits2::eTransferWrite);
+            cmdbuf.blitImage(vk::Image(output_image), vk::ImageLayout::eTransferSrcOptimal,
+                             vk::Image(slot.upscaled), vk::ImageLayout::eTransferDstOptimal,
+                             dst_region, vk::Filter::eNearest);
+            barrier(vk::Image(slot.upscaled), vk::ImageLayout::eTransferDstOptimal,
+                    vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferWrite,
+                    vk::ImageLayout::eGeneral, all, vk::AccessFlagBits2::eShaderRead);
+        }
+        barrier(vk::Image(slot.pre_hud), vk::ImageLayout::eTransferSrcOptimal,
+                vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferRead,
+                vk::ImageLayout::eGeneral, all, vk::AccessFlagBits2::eShaderRead);
+    } else if (UseDlss()) {
         const Dlss::Resource output{vk::Image(slot.upscaled), *slot.upscaled_view, unorm,
                                     vk::ImageAspectFlagBits::eColor, f.out_width, f.out_height};
         ok = RecordDlss(cmdbuf,
@@ -957,7 +1025,8 @@ bool TemporalUpscaler::EnsureResources(u32 w, u32 h, u32 ow, u32 oh, bool hdr) {
         }));
     };
     make_image(opaque_image, opaque_view, vk::Format::eR16G16B16A16Sfloat,
-               vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferDst |
+               vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled |
+                   vk::ImageUsageFlagBits::eTransferDst |
                    vk::ImageUsageFlagBits::eTransferSrc);
     make_image(reactive_image, reactive_view, vk::Format::eR8Unorm,
                vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled);
@@ -984,7 +1053,8 @@ bool TemporalUpscaler::EnsureResources(u32 w, u32 h, u32 ow, u32 oh, bool hdr) {
         return true;
     }
     if (use_fsr4) {
-        std::printf("Upscaler: FSR 4 inputs %ux%u -> %ux%u\n", w, h, ow, oh);
+        std::printf("Upscaler: dedicated temporal inputs %ux%u -> %ux%u (FSR 4 or DLSS)\n",
+                    w, h, ow, oh);
         return true;
     }
     FfxVkPortableMemoryUsage usage{};

@@ -132,6 +132,10 @@ foreach(BPP IN ITEMS 8 16 32 64 96 128)
 endforeach()
 add_custom_target(host_shaders DEPENDS ${SHADER_HEADERS})
 
+# FrameGen PoC: only compile the NVIDIA Streamline headers when explicitly
+# requested. Even when enabled the bootstrap does not generate frames yet.
+option(GOW3_FRAMEGEN_POC "Experimental NVIDIA Streamline Vulkan loader bootstrap" OFF)
+set(GOW3_STREAMLINE_SDK_ROOT "" CACHE PATH "NVIDIA-RTX/Streamline v2.14.16 SDK checkout")
 file(GLOB_RECURSE VIDEO_CORE CONFIGURE_DEPENDS shadps4/video_core/*.cpp)
 file(GLOB_RECURSE RECOMPILER CONFIGURE_DEPENDS shadps4/shader_recompiler/*.cpp)
 list(FILTER VIDEO_CORE EXCLUDE REGEX "renderdoc\\.cpp$")
@@ -159,6 +163,14 @@ add_library(gow3gpu ${GOW3GPU_KIND} ${VIDEO_CORE} ${RECOMPILER} ${COMMON} ${SHIM
     shadps4/core/libraries/kernel/equeue.cpp ${AVPLAYER} ${FONTLIB}
     shadps4/core/libraries/videodec/video_utils.cpp)
 add_dependencies(gow3gpu host_shaders)
+if (WIN32 AND GOW3_FRAMEGEN_POC)
+    if (NOT EXISTS "${GOW3_STREAMLINE_SDK_ROOT}/include/sl.h")
+        message(FATAL_ERROR "GOW3_FRAMEGEN_POC requires official NVIDIA Streamline SDK headers")
+    endif()
+    target_compile_definitions(gow3gpu PRIVATE GOW3_FRAMEGEN_POC=1)
+    target_include_directories(gow3gpu PRIVATE "${GOW3_STREAMLINE_SDK_ROOT}/include")
+    target_link_libraries(gow3gpu PRIVATE wintrust crypt32 bcrypt)
+endif()
 # In-game settings menu: Dear ImGui (third_party/imgui, MIT) with its Vulkan backend, and an
 # embedded Cyrillic font (third_party/fonts).
 target_sources(gow3gpu PRIVATE third_party/imgui/imgui.cpp third_party/imgui/imgui_draw.cpp
