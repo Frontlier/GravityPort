@@ -34,3 +34,37 @@ launcher/assets/
 /GravityRush.exe
 /Gravity Rush.exe
 /Gravity Rush Launcher.exe
+
+# GravityPort: never version commercial game content, firmware or keys
+*.pkg
+*.psarc
+*.prx
+*.self
+*.rif
+*.rap
+*.r00
+*.rar
+*.iso
+eboot.bin
+sce_sys/
+sce_module/
+*.key
+*.pem
+.env
+.env.*
+settings.json
+savedata/
+# Local release products and shader caches
+*.dll
+*.pdb
+*.dmp
+*.zip
+*.7z
+*.msi
+*.exe
+# Developer machine paths and backup folders
+local.json
+backups/
+.vs/
+.idea/
+

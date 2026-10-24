@@ -1103,20 +1103,26 @@ bool QuitDue() {
 // GOW3_FPS_LOG=1: presented frames per second and the worst frame, every 5 s (benchmarks).
 void LogPresent() {
     static const bool fps_log = std::getenv("GOW3_FPS_LOG") != nullptr;
-    if (!fps_log) {
-        return;
-    }
+    // Even when console logging is disabled, keep the on-screen FPS counter running.
     const auto now = std::chrono::steady_clock::now();
     static auto window_start = now, previous = now;
     static unsigned frames = 0;
     static float worst = 0.0f;
+    const float ms = std::chrono::duration<float, std::milli>(now - previous).count();
+    // Use the same presented-frame timestamps for the console and the on-screen FPS counter.
+    // Timing only the overlay render can report an unrelated rate during reused frames.
+    if (ms > 0.0f && ms < 1000.0f) {
+        frame_ms_avg = frame_ms_avg == 0.0f ? ms : frame_ms_avg * 0.95f + ms * 0.05f;
+    }
     ++frames;
-    worst = std::max(worst, std::chrono::duration<float, std::milli>(now - previous).count());
+    worst = std::max(worst, ms);
     previous = now;
     const float elapsed = std::chrono::duration<float>(now - window_start).count();
     if (elapsed >= 5.0f) {
-        std::printf("Perf: %.1f FPS, worst frame %.1f ms\n", frames / elapsed, worst);
-        std::fflush(stdout);
+        if (fps_log) {
+            std::printf("Perf: %.1f FPS, worst frame %.1f ms\n", frames / elapsed, worst);
+            std::fflush(stdout);
+        }
         window_start = now;
         frames = 0;
         worst = 0.0f;
@@ -1128,9 +1134,7 @@ void Render(vk::CommandBuffer cmdbuf, vk::ImageView view, vk::Extent2D extent) {
     const auto now = std::chrono::steady_clock::now();
     const float ms = std::chrono::duration<float, std::milli>(now - last_present).count();
     last_present = now;
-    if (ms > 0.0f && ms < 1000.0f) {
-        frame_ms_avg = frame_ms_avg == 0.0f ? ms : frame_ms_avg * 0.95f + ms * 0.05f;
-    }
+    // The FPS display uses LogPresent(): actual presented frames, like the console diagnostics.
     ConfirmRestart();
     PollChoiceInput();
     if (!Visible()) {

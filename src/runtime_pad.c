@@ -231,6 +231,37 @@ static void sample_motion(SDL_Gamepad *g, PadData *d) {
                    v[0],v[1],v[2],have_accel ? a[0] : 0.0f,have_accel ? a[1] : 0.0f,have_accel ? a[2] : 0.0f,dt);
             next_log=now+2000000;
         }
+    } else if (!motion.gyro) {
+        // XInput (notably virtual Xbox 360 devices) exposes no motion sensors to SDL.
+        // Optional alternative: hold L3 and move the right stick to simulate a gyro tilt.
+        // Only consume L3/right-stick while the gesture is active; normal camera use is unchanged.
+        static int stick_mode = -1, stick_notice;
+        if (stick_mode < 0) {
+            const char *option = getenv("GOW3_GYRO_STICK");
+            stick_mode = option && *option == '1';
+        }
+        if (stick_mode && (d->buttons & BTN_L3)) {
+            float sx = (float)SDL_GetGamepadAxis(g,SDL_GAMEPAD_AXIS_RIGHTX)/32767.0f;
+            float sy = (float)SDL_GetGamepadAxis(g,SDL_GAMEPAD_AXIS_RIGHTY)/32767.0f;
+            if (fabsf(sx) > 0.16f || fabsf(sy) > 0.16f) {
+                const uint64_t now = d->timestamp;
+                float dt = motion.last_us && now > motion.last_us
+                           ? (float)(now - motion.last_us)/1e6f : 0.0f;
+                motion.last_us = now;
+                dt = fminf(dt,0.05f); // prevent a sudden jump following a pause
+                const float fake_gyro[3] = {-sy*2.0f, sx*2.0f, 0.0f};
+                float filtered[3];
+                motion_filter_update(&motion.filter,fake_gyro,NULL,0,dt,filtered);
+                for (int i=0;i<3;++i) d->angular_velocity[i] = filtered[i]*sens;
+                d->buttons &= ~BTN_L3;
+                d->right_x = d->right_y = 128;
+                if (!stick_notice++) puts("Runtime: XInput gyro emulation active (L3 + right stick)");
+            } else {
+                motion.last_us = d->timestamp;
+            }
+        } else {
+            motion.last_us = d->timestamp;
+        }
     }
     scaled_orientation(motion.filter.q,sens,d->orientation);
 }
@@ -267,8 +298,15 @@ static void sample_host(PadData *d) {
                 }
             }
         }
-        // Back/Select on pads without a touch surface is a left-side click.
-        if ((d->buttons & BTN_TOUCHPAD) && !d->touch_count) touch_click(d,0);
+        // On controllers without a touch surface, Back/View is the left touchpad.
+        // When enabled, Back + D-pad Right is the right touchpad; consume D-pad Right
+        // so a simulated click cannot accidentally navigate the game's menu as well.
+        if ((d->buttons & BTN_TOUCHPAD) && !d->touch_count) {
+            const char *combo = getenv("GOW3_XINPUT_TOUCHPAD");
+            const bool right = combo && *combo == '1' && (d->buttons & BTN_RIGHT);
+            if (right) d->buttons &= ~BTN_RIGHT;
+            touch_click(d,right);
+        }
     }
     /* The keyboard works with or without a gamepad: its buttons add to the pad's, and a stick
      * follows the keys only while one of them is held. */

@@ -69,7 +69,7 @@ inline std::string Format(const Sample& s, unsigned mask, bool row) {
         add();
     }
     if (mask & FrameTime) {
-        std::snprintf(part, sizeof(part), "%.1f ms", s.frame_ms);
+        std::snprintf(part, sizeof(part), "%.1f ms/frame", s.frame_ms);
         add();
     }
     if (mask & Upscaler) {

@@ -1847,7 +1847,20 @@ class LauncherWindow:
 
     def page_controls(self, body, foot):
         tk, logic = self.tk, self.logic
-        self.sec(body, 'GYROSCOPE', first=True)
+        self.sec(body, 'XBOX / XINPUT', first=True)
+        self.toggle_row(body, 'Simulate gyro: L3 + right stick',
+                        self.app.get('xinput_gyro_stick', False),
+                        lambda v: self.set_app('xinput_gyro_stick', v),
+                        'For controllers without motion sensors. Hold L3 and move the right stick '
+                        'to tilt; regular stick and L3 work normally when not combined.')
+        self.toggle_row(body, 'Right touchpad: View + D-pad Right',
+                        self.app.get('xinput_touchpad_combo', True),
+                        lambda v: self.set_app('xinput_touchpad_combo', v),
+                        'View/Back is a left-side touch. Hold View + D-pad Right for the right side.')
+        self.hint(body, 'Touchpad without a touch surface: View/Back = left; '
+                  'View + D-pad Right = right. Keyboard Tab / Backspace; '
+                  'hold left mouse button and drag for swipes.')
+        self.sec(body, 'GYROSCOPE')
 
         def make_slider(control):
             value = float(self.app.get('gyro_sens', 1.4))
@@ -2033,6 +2046,8 @@ class LauncherWindow:
     def reset_controls(self):
         self.app['controls'] = {}
         self.app['gyro_sens'] = 1.4
+        self.app['xinput_gyro_stick'] = False
+        self.app['xinput_touchpad_combo'] = True
         self.save()
         self.open_page('controls')
         self.toast(t('Defaults restored'))
