@@ -171,6 +171,16 @@ def main():
             # gravityrush.ini decides the resolution and frame rate patches (in-game menu, launcher).
             import xml.etree.ElementTree as ET
             known = {m.get('Name') for m in ET.parse(profile[1]).getroot().iter('Metadata')}
+            # Source menu inherited the 120/240 engine choices, but CUSA01113.xml
+            # currently contains NO corresponding frame-rate binary patches.
+            # Never let a stale menu option crash game preparation or patch
+            # the wrong bytes. Restore the safe 60-FPS engine setting.
+            graphics, fps_notice = graphics_options.validated_engine_fps(graphics, known)
+            if fps_notice:
+                print(f'GravityPort: {fps_notice}. Select 120 in Video > FPS limit '
+                      'for the supported 60-Hz VBlank presentation mode.', flush=True)
+                graphics_options.write_keys(env['GOW3_CONFIG'],
+                                            {'engine_fps': '60', 'restart_unconfirmed': '0'})
             # GOW3_CAMERA_FIX=0 leaves the gravity-shift camera fix out (A/B tests).
             names = graphics_options.patch_names(names, graphics, graphics_options.TEXTURE_FIX in known,
                                                  graphics_options.CAMERA_FIX in known and env.get('GOW3_CAMERA_FIX') != '0')

@@ -337,12 +337,17 @@ void PerformanceTab() {
     if (BeginRows("##live")) {
         static const char* const fps_labels[] = {"30", "60", "120", "240", "Unlimited"};
         ChoiceRow("Frame rate limit", s.fps_limit, fps_labels, G::FpsLimits.data(), int(G::FpsLimits.size()),
-                  "Caps the frame rate. The engine frame rate (below) is the highest it can go.");
-        const int effective = G::EffectiveFps(s.fps_limit, s.startup_engine_fps);
-        if (s.fps_limit == 0 || effective < s.fps_limit) {
-            char text[48];
-            std::snprintf(text, sizeof(text), "%d FPS (engine frame rate)", effective);
-            InfoRow("Effective limit", text);
+                  "Persistent cap on presented FPS. 120 FPS works with guest VBlank at 60 Hz. "
+                  "Return to 60 FPS if movement or animations are affected.");
+        char present_cap[48];
+        if (s.fps_limit == 0) {
+            InfoRow("Present cap", "Unlimited (not recommended)");
+        } else {
+            std::snprintf(present_cap, sizeof(present_cap), "%d FPS", s.fps_limit.load());
+            InfoRow("Present cap", present_cap);
+        }
+        if (s.fps_limit > 120 || s.fps_limit == 0) {
+            InfoRow("Timing caution", "Above 120 FPS can slow movement or affect physics");
         }
         static const char* const queued_labels[] = {"1 (lowest latency)", "2", "Unlimited"};
         ChoiceRow("Frames queued", s.frames_queued, queued_labels, G::FramesQueued.data(),
@@ -359,10 +364,18 @@ void PerformanceTab() {
         static const int values[] = {10, 11, 2, 12, 13, 0, 14, 3, 4, 5};
         ChoiceRow("Render resolution", s.render_resolution, labels, values, 10,
                   "The size the game draws at. Above the screen's it works as anti-aliasing.");
-        // The highest frame rate the game runs at.
-        static const char* const engine_labels[] = {"60 (original)", "120", "240"};
-        ChoiceRow("Engine frame rate", s.engine_fps, engine_labels, G::EngineFps.data(),
-                  int(G::EngineFps.size()), "The highest frame rate the game itself runs at.");
+        // The 120/240 engine patch entries shipped with the menu, but the
+        // CUSA01113 XML has no binary patches by those names. Expose only
+        // what is actually supported until an independently verified game
+        // timing patch is available. Host VBlank experiments are separate.
+        static const char* const engine_labels[] = {"60 (validated)"};
+        static const int engine_values[] = {60};
+        ChoiceRow("Engine timing patch", s.engine_fps, engine_labels, engine_values, 1,
+                  "60-Hz game timing is preserved. To play at 120 presented FPS, "
+                  "select Frame rate limit = 120 above; no unsupported engine patch is required.");
+        if (std::getenv("GRAVITYPORT_HFR_TRIAL")) {
+            InfoRow("Lab mode", "One-launch 120 FPS presentation test");
+        }
         CheckRow("Game reads GPU data without waiting", s.stale_readback,
                  "Big FPS gain. Switch it off if lighting or objects look wrong.");
         CheckRow("Deferred GPU readbacks", s.deferred_readback,

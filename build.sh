@@ -16,12 +16,19 @@ MINGW*|MSYS*)
         git submodule update --init --recursive
     fi
     for patch in gpu/patches/fsr-vulkan/*.patch; do
-        if ! git -C gpu/third_party/fsr-vulkan apply --reverse --check "$PWD/$patch" 2>/dev/null; then
-            git -C gpu/third_party/fsr-vulkan apply "$PWD/$patch"
+        # The pinned FSR-Vulkan submodule differs only in context whitespace;
+        # -ignore-space-change permits applying the exact upstream patch safely.
+        if ! git -C gpu/third_party/fsr-vulkan apply --reverse --ignore-space-change --check "$PWD/$patch" 2>/dev/null; then
+            git -C gpu/third_party/fsr-vulkan apply --ignore-space-change "$PWD/$patch"
         fi
     done
+    # The pinned FidelityFX FSR 3.1 sources assume a handful of standard
+    # C++ headers are already present (swprintf_s, placement new, log2).
+    # On MSYS2 CLANG64 they are not transitively included: supply them
+    # explicitly for reproducible, clean Windows builds.
     cmake -S gpu -B out/gpu -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DGOW3_PGO=off \
-        -DGOW3_LTO="${GOW3_LTO:-OFF}" -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ >/dev/null
+        -DGOW3_LTO="${GOW3_LTO:-OFF}" -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
+        -DCMAKE_CXX_FLAGS="${CXXFLAGS:-} -include cstdlib -include cstdio -include cwchar -include cmath -include new" >/dev/null
     echo "GPU library and loader: LTO ${GOW3_LTO:-OFF}"
     if ! ninja -C out/gpu gravityrush-runtime gravityrush-gpu-check gravityrush-play > out/gpu-build.log 2>&1; then
         grep -v '^\[' out/gpu-build.log | tail -40 >&2
@@ -65,8 +72,9 @@ if [[ ! -f gpu/third_party/fsr-vulkan/CMakeLists.txt || ! -f gpu/third_party/img
     git submodule update --init --recursive
 fi
 for patch in gpu/patches/fsr-vulkan/*.patch; do
-    if ! git -C gpu/third_party/fsr-vulkan apply --reverse --check "$PWD/$patch" 2>/dev/null; then
-        git -C gpu/third_party/fsr-vulkan apply "$PWD/$patch"
+    # Apply the maintained vendor deltas even if context whitespace differs.
+    if ! git -C gpu/third_party/fsr-vulkan apply --reverse --ignore-space-change --check "$PWD/$patch" 2>/dev/null; then
+        git -C gpu/third_party/fsr-vulkan apply --ignore-space-change "$PWD/$patch"
     fi
 done
 cmake -S gpu -B out/gpu -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DGOW3_PGO="$pgo" \

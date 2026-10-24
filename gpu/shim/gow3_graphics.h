@@ -79,7 +79,9 @@ inline bool FsrPassRuns(bool fsr1, bool rcas, int in_w, int in_h, int out_w, int
     return (fsr1 && upscale) || (rcas && same);
 }
 
-/// What the present limit really allows: the engine ceiling caps it.
+/// Legacy engine-cap helper kept for API/test compatibility. In Gravity Rush
+/// a 60-Hz guest VBlank can still produce 120 presented frames per second.
+/// Never use this helper to report or estimate measured presented FPS.
 inline int EffectiveFps(int limit, int engine_fps) {
     return limit == 0 || limit > engine_fps ? engine_fps : limit;
 }

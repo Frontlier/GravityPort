@@ -33,6 +33,13 @@ diagnóstico e indicadores de estabilidade. Preservar funções existentes:
 controles, tradução, saves, mods, FSR/DLSS, resolução, atalhos, autoupdate.
 Empacotar via PyInstaller depois de validar o comportamento da interface.
 
+## Laboratório experimental de FPS
+
+O trabalho de 120 FPS é mantido na branch `feature/high-refresh-120-lab`.
+Leia [o laboratório de 120 FPS](docs/HIGH_REFRESH_LAB.md) para comparar
+as medições locais, os riscos à física e o procedimento de rollback.
+O build experimental não modifica a versão estável nem os saves.
+
 ## Especificação de qualidade
 
 1. Boot e menu reproduzíveis em múltiplas execuções.
