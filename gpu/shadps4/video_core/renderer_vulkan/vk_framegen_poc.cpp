@@ -12,6 +12,9 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 #include <windows.h>
+#include <bcrypt.h>
+#include <fstream>
+#include <cstring>
 #include <algorithm>
 #include <array>
 #include <cstdio>
@@ -65,23 +68,77 @@ void Report(const std::string& reason) {
                 reason.c_str());
 }
 
+// Pinned to the official NVIDIA-RTX/Streamline v2.14.16 ZIP.
+// NGX uses a different NVIDIA publisher certificate from the Streamline
+// plugins; the SDK's sl::security helper rejects it despite Windows
+// Authenticode reporting "Valid" and "NVIDIA Corporation" for both.
+// The staging script checks the publisher; at runtime require the exact
+// reviewed NVIDIA release bytes for each NGX binary.
+bool CheckPinnedNgx(const std::filesystem::path& path) {
+    constexpr auto kDLSSG =
+        "8d59d49b36410dd6b62fef2503a5871d347415bd85d943fa0848563a95dd50c7";
+    constexpr auto kDLSS =
+        "d00b5b0ab29c3ca101b70c3a5ecb3a01b7ef33766a3383a28a18623083e6123e";
+    const char* expected = path.filename() == L"nvngx_dlssg.dll" ? kDLSSG :
+                           path.filename() == L"nvngx_dlss.dll" ? kDLSS : nullptr;
+    if (!expected) return false;
+    BCRYPT_ALG_HANDLE algorithm = nullptr;
+    BCRYPT_HASH_HANDLE hash = nullptr;
+    if (BCryptOpenAlgorithmProvider(&algorithm, BCRYPT_SHA256_ALGORITHM, nullptr, 0) != 0)
+        return false;
+    bool valid = false;
+    if (BCryptCreateHash(algorithm, &hash, nullptr, 0, nullptr, 0, 0) == 0) {
+        std::ifstream file(path, std::ios::binary);
+        if (file) {
+            std::array<char, 65536> chunk{};
+            bool hashed = true;
+            while (file) {
+                file.read(chunk.data(), chunk.size());
+                const auto bytes = file.gcount();
+                if (bytes > 0 && BCryptHashData(
+                        hash, reinterpret_cast<PUCHAR>(chunk.data()),
+                        ULONG(bytes), 0) != 0) {
+                    hashed = false;
+                    break;
+                }
+            }
+            std::array<unsigned char, 32> digest{};
+            if (hashed && file.eof() && BCryptFinishHash(
+                    hash, digest.data(), ULONG(digest.size()), 0) == 0) {
+                char hex[65]{};
+                for (size_t i = 0; i < digest.size(); ++i)
+                    std::snprintf(hex + 2*i, 3, "%02x", digest[i]);
+                valid = std::strcmp(hex, expected) == 0;
+            }
+        }
+        BCryptDestroyHash(hash);
+    }
+    BCryptCloseAlgorithmProvider(algorithm, 0);
+    return valid;
+}
+
 void Load() {
     if (!Wanted()) return;
     const auto dir = ExecutableDirectory();
     if (dir.empty()) return Report("cannot resolve executable directory");
     // All local DLLs must be signed. Never substitute files from current
     // directory or PATH; the libraries come from NVIDIA's official SDK.
-    const std::array<const wchar_t*, 5> plugins = {
+    const std::array<const wchar_t*, 7> plugins = {
         L"sl.interposer.dll", L"sl.dlss_g.dll", L"sl.reflex.dll",
-        L"sl.pcl.dll", L"sl.common.dll"
+        L"sl.pcl.dll", L"sl.common.dll", L"nvngx_dlssg.dll",
+        L"nvngx_dlss.dll"
     };
     for (const wchar_t* name : plugins) {
         const auto path = dir / name;
         if (!std::filesystem::is_regular_file(path))
             return Report("official Streamline plugin DLLs are not installed");
-        if (!sl::security::verifyEmbeddedSignature(path.c_str()) ||
-            !sl::security::isSignedByNVIDIA(path.c_str()))
-            return Report("an unsigned or non-NVIDIA Streamline DLL was rejected");
+        const bool is_streamline = std::wstring_view{name}.starts_with(L"sl.");
+        const bool trusted = is_streamline
+            ? (sl::security::verifyEmbeddedSignature(path.c_str()) &&
+               sl::security::isSignedByNVIDIA(path.c_str()))
+            : CheckPinnedNgx(path);
+        if (!trusted)
+            return Report("a vendor DLL failed signed/pinned SDK verification");
     }
 
     auto& s = S();
@@ -184,8 +241,10 @@ bool VerifyDevice(VkInstance instance, VkPhysicalDevice physical, VkDevice devic
         Report("DLSS Frame Generation SDK reports Vulkan unsupported");
         return false;
     }
-    if (s.feature_supported(sl::kFeatureDLSS_G, adapter) != sl::Result::eOk) {
-        Report("GPU, driver or HAGS does not meet Streamline DLSS-G requirements");
+    const auto supported = s.feature_supported(sl::kFeatureDLSS_G, adapter);
+    if (supported != sl::Result::eOk) {
+        Report("DLSS-G capability query result " + std::to_string(int(supported)) +
+               " (verify NVIDIA NGX DLLs, Vulkan driver, HAGS and GPU compatibility)");
         return false;
     }
     s.verified = true;

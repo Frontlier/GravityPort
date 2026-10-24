@@ -51,3 +51,47 @@ https://github.com/NVIDIA-RTX/Streamline/blob/main/docs/ProgrammingGuideDLSS_G.m
 https://github.com/eFMann/shadPS4-Bloodborne-DLSS-FSR
 
 Do not publish NVIDIA proprietary DLLs or game data to GitHub.
+
+
+## Verified result on Frontlier, 24 October 2026
+
+- The official NVIDIA Streamline v2.14.16 Windows x64 SDK ZIP
+  (276,016,170 bytes) passed archive CRC verification. All 7 staged
+  x64 DLLs have valid Authenticode signatures from NVIDIA Corporation:
+  sl.interposer.dll, sl.dlss_g.dll, sl.reflex.dll, sl.pcl.dll,
+  sl.common.dll, nvngx_dlssg.dll, nvngx_dlss.dll.
+- The independent executable loaded the official Streamline interposer,
+  DLSS-G, NVIDIA Reflex and PCL plug-ins.
+- An initial full-game run failed DLSS-G compatibility because the
+  NVIDIA NGX Frame Generation DLL `nvngx_dlssg.dll` was not yet staged.
+  This missing dependency was discovered in the same official SDK ZIP.
+  It is **not evidence that the RTX 5070 or Windows HAGS is incompatible**.
+- After staging the signed NGX DLL, the SDK reported
+  `NGX feature 11 requirements - minOS 10.0.19041 minHW 0x190`.
+  A second isolated native Gravity Rush test passed the actual
+  `slIsFeatureSupported(kFeatureDLSS_G, adapter)` hardware/driver check.
+- The PS4 game booted to DEMO BEGIN and presented 60 FPS with 60Hz guest
+  VBlank under the experimental Vulkan loader. It stopped automatically
+  after the bounded 50-second test; no crash was observed.
+- NO interpolated frames were generated. Missing: camera matrices,
+  per-frame motion vectors, depth+HUD-less image tagging, Reflex, frame
+  tokens, Vulkan present/fence synchronization and mode/latency validation.
+- The production binary and gamepad sources were not altered.
+  `src/runtime_pad.c` is identical to the stable branch. The read-only
+  controller probe reported no pad connected after the user's game exit;
+  actual small-stick movement cannot be measured until the controller is
+  reconnected.
+
+Local-only, not versioned:
+- Official vendor SDK and ZIP:
+  `GravityPort/out/sdk/NVIDIA-Streamline-v2.14.16`
+  and `GravityPort/out/sdk/streamline-sdk-v2.14.16.zip`.
+- Staged official plugins and isolated executable:
+  `GravityPort_FrameGen_PoC/out/framegen-poc/bin`.
+- Full bounded game log:
+  `GravityPort_FrameGen_PoC/out/framegen-poc/game-probe-data/streamline-real-game.log`.
+
+**Next code stage**: isolate/copy correct motion, depth and camera data
+for frames; insert Vulkan Streamline frame tags and swapchain interception
+in the render/present path; add a measurable FG 2x output test.
+Do not advertise Frame Generation as functional until this succeeds.
