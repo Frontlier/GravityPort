@@ -42,3 +42,22 @@
 - Documentação, relatórios locais e regressões em tests/test_gravityport_highfps.py.
 - Documentado em docs/HIGH_REFRESH_LAB.md. Aguardar validação manual
   antes de habilitar modo em main ou publicar release.
+
+
+## 0.3.0 - 120 FPS no GravityPort principal - 24/10/2026
+
+- Apos teste e aprovacao de gameplay pelo usuario, o limite de 120 FPS
+  passa a ser selecionavel de forma permanente na pagina Video.
+- O VBlank do PS4 continua em 60 Hz (nao e usado patch binario de
+  120/240 FPS do motor, ausente neste CUSA01113).
+- Configuracao padrao do instalador passa a 120 FPS, com escolha de
+  60 FPS para compatibilidade ou preferencia.
+- O menu interno agora informa o cap de apresentacao real (antes
+  declarava incorretamente que o teto de 60 Hz da simulacao limitava
+  todos os frames apresentados).
+- Laboratorio e perfil experimental continuam isolados; na versao
+  principal nao existe toggle de execucao unica.
+- Instalacao principal Windows atualizada sem apagar os saves, mods
+  ou as preferencias de controle; instalacao anterior arquivada.
+- Provas A/B, testes automatizados e roteiros tecnicos em
+  docs/HIGH_REFRESH_LAB.md. Usar 60 FPS se houver regressao.

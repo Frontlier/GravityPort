@@ -147,7 +147,7 @@ INI_FLAGS = {'sharpen', 'object_motion', 'show_fps', 'vsync', 'async_shaders', '
 # The graphics keys are also in the in-game menu (Insert / R3+L2); run.py reads the startup ones.
 INI_DEFAULTS = {'upscaler': 'off', 'preset': '1', 'sharpen': '0', 'sharpness': '0.50',
                 'object_motion': '1', 'show_fps': '1', 'output_res': '1920x1080',
-                'live_resolution': 'auto', 'display_mode': 'borderless', 'vsync': '1', 'fps_limit': '0',
+                'live_resolution': 'auto', 'display_mode': 'borderless', 'vsync': '1', 'fps_limit': '120',
                 'async_shaders': '1', 'deferred_readback': '1', 'stale_readback': '0',
                 'render_resolution': 'native', 'engine_fps': '60', 'fsr1': '0', 'rcas': '1',
                 'rcas_strength': '75', 'frames_queued': '1',
@@ -436,7 +436,7 @@ def game_environment(s):
     # Preserve VBlank=60 to avoid changing the console timer while evaluating
     # whether 120 displayed frames are distinct and simulation-safe.
     # This option is temporary and must be explicitly re-enabled each launch.
-    if s.get('high_fps_trial', False):
+    if PERF_LAB_BUILD and s.get('high_fps_trial', False):
         env['GOW3_VBLANK_HZ'] = '60'
         env['GOW3_FPS_LIMIT'] = '120'
         env['GOW3_PRESENT_MODE'] = 'Mailbox'
@@ -521,8 +521,10 @@ def play_without_window(settings):
     log_dir = Path(settings.get('user_dir') or DATA_DIR / 'user')
     log_dir.mkdir(parents=True, exist_ok=True)
     env = game_environment(settings)
-    if settings.get('high_fps_trial', False):
-        # One shot: the next launch returns to the stable present cap even
+    if PERF_LAB_BUILD and settings.get('high_fps_trial', False):
+        # One shot in the separate Lab only; the main installation uses
+        # the persistent 60/120 FPS choice on the Video page.
+        # The next launch returns to the stable present cap even
         # after a crash. Persist before starting any game subprocess.
         settings['high_fps_trial'] = False
         CONFIG_DIR.mkdir(parents=True, exist_ok=True)

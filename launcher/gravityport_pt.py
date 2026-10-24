@@ -158,6 +158,10 @@ EXTRA = {
     "Balanced": "Equilibrado",
     "Performance": "Desempenho",
     "120 FPS experimental (one launch)": "120 FPS experimental (uma execução)",
+    "120 FPS is available permanently on supported high-refresh monitors. The PS4 VBlank stays at 60 Hz; use 60 FPS for compatibility, and avoid Unlimited if physics or movement behave strangely.":
+        "120 FPS permanente para monitores de alta frequência. O VBlank do PS4 continua em 60 Hz. Use 60 FPS se houver problemas de compatibilidade e evite Sem limite caso a física ou os movimentos fiquem estranhos.",
+    "120 FPS is a persistent option in Video > FPS limit. Use 60 FPS for compatibility if needed.":
+        "120 FPS é uma opção permanente em Vídeo > Limite de FPS. Se necessário, volte a 60 FPS.",
     "Raises the display/presenter cap to 120 FPS while keeping the console VBlank at 60 Hz. This worked in a Frontlier log but unique frames, motion timing and gameplay are not verified. The option resets automatically after one launch.":
         "Eleva o limite de apresentação para 120 FPS e mantém o VBlank do PS4 em 60 Hz. O log registrou ~120 FPS, mas ainda precisamos validar quadros distintos, física, câmera e animações. A opção se desativa após uma execução.",
     "Baseline is 60 FPS. The experimental cap does not modify the PS4 executable or enable missing engine patches.":

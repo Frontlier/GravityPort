@@ -2,7 +2,7 @@
 
 Data: 24 de outubro de 2026.
 Branch: `feature/high-refresh-120-lab`.
-Situação: teste automatizado A/B concluído; jogabilidade e física ainda não validadas.
+Situação: A/B concluído; usuário validou o modo a 120 FPS no Frontlier. A opção foi promovida para o launcher principal, mantendo 60 FPS como alternativa e o laboratório para regressões. A validação de campanha completa em múltiplas máquinas continua pendente.
 
 ## Hardware e dados verificados na máquina Frontlier
 

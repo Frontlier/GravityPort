@@ -1362,7 +1362,7 @@ class LauncherWindow:
         self.play = None
         self.render_play()
         self.ver = cv.create_text(self.px(SIDEBAR_W / 2), self.px(H - 24),
-                                  text='GRAVITYPORT 0.2 PREVIEW  /  CORE ' + self.logic.VERSION,
+                                  text='GRAVITYPORT 0.3  /  CORE ' + self.logic.VERSION,
                                   fill=TEXT3, font=self.font(9.5))
         # Card (hidden until a page opens), dialog and notice.
         self.panel_items = []
@@ -1746,10 +1746,11 @@ class LauncherWindow:
         self.row(body, 'Window mode', lambda c: Segments(self, c, WINDOW_MODES, self.ini.get('display_mode', 'borderless'),
                                                         lambda v: self.set_ini('display_mode', v)).widget.pack(side='right'))
         self.toggle_row(body, 'Vertical sync', self.ini.get('vsync', '1') == '1', lambda v: self.set_ini('vsync', '1' if v else '0'))
-        self.row(body, 'FPS limit', lambda c: Segments(self, c, FPS_CHOICES, self.ini.get('fps_limit', '0'),
+        self.row(body, 'FPS limit', lambda c: Segments(self, c, FPS_CHOICES, self.ini.get('fps_limit', '120'),
                                                       lambda v: self.set_ini('fps_limit', v)).widget.pack(side='right'),
-                 'The game defaults to 60 FPS. The one-shot 120 FPS present test is available '
-                 'under Advanced > Performance, with the PS4 VBlank kept at 60 Hz.')
+                 '120 FPS is available permanently on supported high-refresh monitors. '
+                 'The PS4 VBlank stays at 60 Hz; use 60 FPS for compatibility, '
+                 'and avoid Unlimited if physics or movement behave strangely.')
         rates = [('0', 'Desktop')] + [(str(r), f'{r} Hz') for r in refresh_rates()]
         rate = self.ini.get('refresh_rate', '0')
         if rate not in dict(rates):
@@ -1835,7 +1836,7 @@ class LauncherWindow:
                                        lambda v: self.set_ini('anisotropy', v), 16).pack(side='right'),
                  'Sharper textures seen at an angle. The game already uses 16x on its world textures; this raises the '
                  'ones that use less.')
-        self.footer(foot, [('Reset', lambda: self.reset({'display_mode': 'borderless', 'vsync': '1', 'fps_limit': '0',
+        self.footer(foot, [('Reset', lambda: self.reset({'display_mode': 'borderless', 'vsync': '1', 'fps_limit': '120',
                                                          'refresh_rate': '0',
                                                          'render_resolution': 'native', 'anisotropy': '16',
                                                          'shadow_quality': 'standard', 'fxaa': '1', 'upscaler': 'off',
@@ -1948,15 +1949,16 @@ class LauncherWindow:
         self.row(body, 'In-game menu', lambda c: ImageButton(self, c, 'Ins', None, 'chip').widget.pack(side='right'),
                  'Opens the settings while you play: Ins on the keyboard, or R3 + L2 on the controller.')
         self.sec(body, 'PERFORMANCE')
-        self.toggle_row(body, '120 FPS experimental (one launch)',
-                        self.app.get('high_fps_trial', False),
-                        lambda enabled: self.set_app('high_fps_trial', enabled),
-                        'Raises the display/presenter cap to 120 FPS while keeping the '
-                        'console VBlank at 60 Hz. This worked in a Frontlier log but '
-                        'unique frames, motion timing and gameplay are not verified. '
-                        'The option resets automatically after one launch.')
-        self.hint(body, 'Baseline is 60 FPS. The experimental cap does not '
-                  'modify the PS4 executable or enable missing engine patches.')
+        if self.logic.PERF_LAB_BUILD:
+            self.toggle_row(body, '120 FPS experimental (one launch)',
+                            self.app.get('high_fps_trial', False),
+                            lambda enabled: self.set_app('high_fps_trial', enabled),
+                            'Raises the display/presenter cap to 120 FPS while keeping the '
+                            'console VBlank at 60 Hz. The option resets after one launch.')
+            self.hint(body, 'This isolated test does not modify the PS4 executable.')
+        else:
+            self.hint(body, '120 FPS is a persistent option in Video > FPS limit. '
+                      'Use 60 FPS for compatibility if needed.')
         cache = self.user_dir() / 'cache'
         size = sum(p.stat().st_size for p in cache.rglob('*') if p.is_file()) if cache.is_dir() else 0
 
@@ -2411,8 +2413,8 @@ class LauncherWindow:
     def start_game(self):
         logic = self.logic
         env = logic.game_environment(self.app)
-        if self.app.get('high_fps_trial', False):
-            # Auto-revert before starting: a crash must not leave 120 Hz enabled.
+        if logic.PERF_LAB_BUILD and self.app.get('high_fps_trial', False):
+            # Lab only. Auto-revert before starting: a crash must not persist the trial.
             self.app['high_fps_trial'] = False
             self.save()
         self.log_lines = []

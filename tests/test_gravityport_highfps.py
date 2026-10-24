@@ -47,7 +47,8 @@ class HighFpsTest(TestCase):
 
     def test_one_shot_limiter_env_no_engine_patch(self):
         s = {**self.settings, "high_fps_trial":True}
-        with mock.patch.object(launcher, "game_profile_of", return_value=(None,None)):
+        with mock.patch.object(launcher, "PERF_LAB_BUILD", True),\
+             mock.patch.object(launcher, "game_profile_of", return_value=(None,None)):
             env=launcher.game_environment(s)
         self.assertEqual(env["GOW3_VBLANK_HZ"],"60")
         self.assertEqual(env["GOW3_FPS_LIMIT"],"120")
@@ -83,7 +84,8 @@ class HighFpsTest(TestCase):
         def fake_popen(*args,**kwargs):
             saved.append(config.read_text(encoding="utf8"))
             return pseudo
-        with mock.patch.object(launcher,"CONFIG_DIR",config.parent),\
+        with mock.patch.object(launcher,"PERF_LAB_BUILD",True),\
+             mock.patch.object(launcher,"CONFIG_DIR",config.parent),\
              mock.patch.object(launcher,"CONFIG_FILE",config),\
              mock.patch.object(launcher,"attach_stdio"),\
              mock.patch.object(launcher,"convert_frame_dumps"),\
@@ -162,3 +164,23 @@ Perf: 120.0 FPS, worst frame 10.4 ms
         self.assertEqual(normal["GOW3_FPS_LIMIT"],"60")
         self.assertEqual(trial["GOW3_VBLANK_HZ"],"60")
         self.assertEqual(trial["GOW3_FPS_LIMIT"],"120")
+
+    def test_main_present_120_does_not_need_experimental_trial(self):
+        # Main's Video page setting is persistent, no one-shot marker or
+        # GOW3_FPS_LIMIT override required.
+        self.assertEqual(launcher.INI_DEFAULTS["fps_limit"],"120")
+        user = {**self.settings, "high_fps_trial": True}
+        with mock.patch.object(launcher,"PERF_LAB_BUILD",False),\
+             mock.patch.object(launcher,"game_profile_of",return_value=(None,None)),\
+             mock.patch.dict(os.environ,{},clear=True):
+            env=launcher.game_environment(user)
+        self.assertNotIn("GRAVITYPORT_HFR_TRIAL",env)
+        self.assertNotIn("GOW3_FPS_LIMIT",env)
+        self.assertNotIn("GOW3_VBLANK_HZ",env)
+
+    def test_120_requires_no_missing_engine_patch(self):
+        ini = graphics_options.startup_options({"engine_fps":"60"})
+        opts,notice = graphics_options.validated_engine_fps(ini,{"Bug Fix - Gravity Shift Camera"})
+        self.assertEqual(opts["engine_fps"],"60")
+        self.assertIsNone(notice)
+        self.assertNotIn("Frame Rate Patch - 120 FPS",graphics_options.patch_names([],opts))

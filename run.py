@@ -177,8 +177,8 @@ def main():
             # the wrong bytes. Restore the safe 60-FPS engine setting.
             graphics, fps_notice = graphics_options.validated_engine_fps(graphics, known)
             if fps_notice:
-                print(f'GravityPort: {fps_notice}. Use the one-shot VBlank laboratory '
-                      'to test host frame pacing independently.', flush=True)
+                print(f'GravityPort: {fps_notice}. Select 120 in Video > FPS limit '
+                      'for the supported 60-Hz VBlank presentation mode.', flush=True)
                 graphics_options.write_keys(env['GOW3_CONFIG'],
                                             {'engine_fps': '60', 'restart_unconfirmed': '0'})
             # GOW3_CAMERA_FIX=0 leaves the gravity-shift camera fix out (A/B tests).

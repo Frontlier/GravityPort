@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 # Build a native, local Windows GravityPort preview; no console/game data included.
-param([ValidateSet("GravityPort Preview","GravityPort 120Hz Lab")][string]$PreviewName = "GravityPort Preview")
+param([ValidateSet("GravityPort Preview","GravityPort 120Hz Lab","GravityPort Main 120FPS Candidate")][string]$PreviewName = "GravityPort Preview")
 $ErrorActionPreference = "Stop"
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $Venv = Join-Path $Root "out\launcher-venv"
@@ -47,8 +47,10 @@ foreach ($exe in @("gravityrush-runtime.exe","gravityrush-gpu-check.exe")) {
     Copy-Item -LiteralPath $source -Destination $Bin
 }
 Copy-Item -LiteralPath "$Root\run.py" -Destination $Preview
-# Use a separate configuration file inside each clean preview folder.
-Copy-Item -LiteralPath "$Root\gravityrush.ini" -Destination (Join-Path $Preview "gravityrush.ini") -Force
+# Never package the developer's ignored gravityrush.ini; generate a clean
+# config from the tracked launcher defaults (120 FPS presented, 60-Hz VBlank).
+& $Py "$Root\tools\make_gravityport_default_ini.py" (Join-Path $Preview "gravityrush.ini")
+if ($LASTEXITCODE -ne 0) {throw "Generating default GravityPort settings failed"}
 Copy-Item -LiteralPath "$Root\scripts" -Destination (Join-Path $Preview "scripts") -Recurse -Force
 Copy-Item -LiteralPath "$Root\patches" -Destination (Join-Path $Preview "patches") -Recurse -Force
 foreach ($unneeded in @("pkg_extract.py","pkg_keys.py")) {
