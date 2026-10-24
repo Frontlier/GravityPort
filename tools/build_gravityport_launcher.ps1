@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 # Build a native, local Windows GravityPort preview; no console/game data included.
+param([ValidateSet("GravityPort Preview","GravityPort 120Hz Lab")][string]$PreviewName = "GravityPort Preview")
 $ErrorActionPreference = "Stop"
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $Venv = Join-Path $Root "out\launcher-venv"
@@ -19,7 +20,7 @@ $PyiWork = Join-Path $Root "out\pyi-work"
 & $Py -m PyInstaller --noconfirm --clean --onedir --windowed --name "GravityPort Launcher" --icon "$Root\launcher\gravityport.ico" --distpath $PyiDist --workpath $PyiWork --specpath $PyiWork --paths "$Root\scripts" --paths "$Root\launcher" --collect-submodules cryptography --hidden-import launcher_ui --hidden-import gravityport_dashboard --hidden-import gravityport_metrics --hidden-import gravityport_pad_tester --hidden-import gravityport_pt --hidden-import save_backup "$Root\launcher\gravityrush_launcher.py"
 if ($LASTEXITCODE -ne 0) {throw "PyInstaller failed"}
 $Built = Join-Path $PyiDist "GravityPort Launcher"
-$Preview = Join-Path $Root "out\GravityPort Preview"
+$Preview = Join-Path $Root ("out\" + $PreviewName)
 if (Test-Path $Preview) {
     foreach ($file in @("user","gravityrush.ini","mods","settings.json","savedata")) {
         if (Test-Path (Join-Path $Preview $file)) {
@@ -46,6 +47,8 @@ foreach ($exe in @("gravityrush-runtime.exe","gravityrush-gpu-check.exe")) {
     Copy-Item -LiteralPath $source -Destination $Bin
 }
 Copy-Item -LiteralPath "$Root\run.py" -Destination $Preview
+# Use a separate configuration file inside each clean preview folder.
+Copy-Item -LiteralPath "$Root\gravityrush.ini" -Destination (Join-Path $Preview "gravityrush.ini") -Force
 Copy-Item -LiteralPath "$Root\scripts" -Destination (Join-Path $Preview "scripts") -Recurse -Force
 Copy-Item -LiteralPath "$Root\patches" -Destination (Join-Path $Preview "patches") -Recurse -Force
 foreach ($unneeded in @("pkg_extract.py","pkg_keys.py")) {

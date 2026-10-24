@@ -359,10 +359,18 @@ void PerformanceTab() {
         static const int values[] = {10, 11, 2, 12, 13, 0, 14, 3, 4, 5};
         ChoiceRow("Render resolution", s.render_resolution, labels, values, 10,
                   "The size the game draws at. Above the screen's it works as anti-aliasing.");
-        // The highest frame rate the game runs at.
-        static const char* const engine_labels[] = {"60 (original)", "120", "240"};
-        ChoiceRow("Engine frame rate", s.engine_fps, engine_labels, G::EngineFps.data(),
-                  int(G::EngineFps.size()), "The highest frame rate the game itself runs at.");
+        // The 120/240 engine patch entries shipped with the menu, but the
+        // CUSA01113 XML has no binary patches by those names. Expose only
+        // what is actually supported until an independently verified game
+        // timing patch is available. Host VBlank experiments are separate.
+        static const char* const engine_labels[] = {"60 (validated)"};
+        static const int engine_values[] = {60};
+        ChoiceRow("Engine frame rate", s.engine_fps, engine_labels, engine_values, 1,
+                  "60 FPS is the validated game-engine setting. "
+                  "Experimental 120 Hz host pacing is available for one launch in GravityPort.");
+        if (std::getenv("GRAVITYPORT_HFR_TRIAL")) {
+            InfoRow("Present target", "120 FPS / guest VBlank 60 Hz - verify unique frames and physics");
+        }
         CheckRow("Game reads GPU data without waiting", s.stale_readback,
                  "Big FPS gain. Switch it off if lighting or objects look wrong.");
         CheckRow("Deferred GPU readbacks", s.deferred_readback,

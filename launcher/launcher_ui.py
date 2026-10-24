@@ -1280,7 +1280,8 @@ class LauncherWindow:
     # ---- window ----------------------------------------------------------------------------
     def build_window(self):
         root, tk = self.root, self.tk
-        root.title('GravityPort | Gravity Rush Remastered')
+        root.title('GravityPort 120Hz LAB | Gravity Rush Remastered' if self.logic.PERF_LAB_BUILD
+                   else 'GravityPort | Gravity Rush Remastered')
         root.configure(bg='#081421')
         width, height = self.px(W), self.px(H)
         x = (root.winfo_screenwidth() - width) // 2
@@ -1747,7 +1748,8 @@ class LauncherWindow:
         self.toggle_row(body, 'Vertical sync', self.ini.get('vsync', '1') == '1', lambda v: self.set_ini('vsync', '1' if v else '0'))
         self.row(body, 'FPS limit', lambda c: Segments(self, c, FPS_CHOICES, self.ini.get('fps_limit', '0'),
                                                       lambda v: self.set_ini('fps_limit', v)).widget.pack(side='right'),
-                 'The game is made for 60 FPS; other values can change physics and animations.')
+                 'The game defaults to 60 FPS. The one-shot 120 FPS present test is available '
+                 'under Advanced > Performance, with the PS4 VBlank kept at 60 Hz.')
         rates = [('0', 'Desktop')] + [(str(r), f'{r} Hz') for r in refresh_rates()]
         rate = self.ini.get('refresh_rate', '0')
         if rate not in dict(rates):
@@ -1946,6 +1948,15 @@ class LauncherWindow:
         self.row(body, 'In-game menu', lambda c: ImageButton(self, c, 'Ins', None, 'chip').widget.pack(side='right'),
                  'Opens the settings while you play: Ins on the keyboard, or R3 + L2 on the controller.')
         self.sec(body, 'PERFORMANCE')
+        self.toggle_row(body, '120 FPS experimental (one launch)',
+                        self.app.get('high_fps_trial', False),
+                        lambda enabled: self.set_app('high_fps_trial', enabled),
+                        'Raises the display/presenter cap to 120 FPS while keeping the '
+                        'console VBlank at 60 Hz. This worked in a Frontlier log but '
+                        'unique frames, motion timing and gameplay are not verified. '
+                        'The option resets automatically after one launch.')
+        self.hint(body, 'Baseline is 60 FPS. The experimental cap does not '
+                  'modify the PS4 executable or enable missing engine patches.')
         cache = self.user_dir() / 'cache'
         size = sum(p.stat().st_size for p in cache.rglob('*') if p.is_file()) if cache.is_dir() else 0
 
@@ -2400,6 +2411,10 @@ class LauncherWindow:
     def start_game(self):
         logic = self.logic
         env = logic.game_environment(self.app)
+        if self.app.get('high_fps_trial', False):
+            # Auto-revert before starting: a crash must not leave 120 Hz enabled.
+            self.app['high_fps_trial'] = False
+            self.save()
         self.log_lines = []
         try:  # the game, started through run.py, may bring its own window to the front
             ctypes.windll.user32.AllowSetForegroundWindow(-1)  # ASFW_ANY

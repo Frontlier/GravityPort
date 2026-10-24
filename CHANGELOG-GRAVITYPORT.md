@@ -24,3 +24,21 @@
 - Fundo geométrico/ícone original e empacotamento via PyInstaller.
 - Testes de unidade e smoke test do aplicativo nativo.
 - Release público e QA de gameplay ainda pendentes.
+
+## 0.3.0-high-fps-lab (branch experimental, ainda nao mergeada)
+
+- Diagnóstico de 60 FPS estáveis, monitor local 1080p a 144 Hz.
+- Confirmado por log do usuário e por A/B isolado: apresentação perto de
+  120 FPS com VBlank convidado de 60 Hz e cap de 120 FPS.
+- Testes automatizados de 34 s: 60,0 vs 120,0 FPS após aquecimento;
+  último p99 18,07 vs 9,65 ms. Isso não comprova física, animação nem
+  quadros distintos e não é benchmark de campanha.
+- Correção para opções inexistentes de engine FPS 120/240:
+  fallback seguro para 60 FPS do motor sem quebrar patches.
+- Toggle experimental no launcher nativo, para uma execução apenas;
+  retorno automático a 60 FPS dentro do build separado de laboratório.
+- Novo pacote Windows isolado "GravityPort 120Hz Lab", sem sobrescrever
+  versão principal nem saves originais.
+- Documentação, relatórios locais e regressões em tests/test_gravityport_highfps.py.
+- Documentado em docs/HIGH_REFRESH_LAB.md. Aguardar validação manual
+  antes de habilitar modo em main ou publicar release.

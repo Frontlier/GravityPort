@@ -31,10 +31,15 @@ FROZEN = getattr(sys, 'frozen', False)
 LAUNCHER_EXE = 'GravityPort Launcher.exe'  # native GravityPort Windows application
 GAME_EXE = 'GravityPort.exe'                # optional direct-play shortcut
 PORT_DIR = Path(sys.executable).resolve().parent if FROZEN else Path(__file__).resolve().parent.parent
+# A privately built performance-lab preview must never share the stable
+# application's preferences or saves by accident. Its own directory
+# controls only the test build, not the production installation.
+PERF_LAB_BUILD = FROZEN and PORT_DIR.name == 'GravityPort 120Hz Lab'
 sys.path.insert(0, str(PORT_DIR / 'scripts'))
 import save_backup  # noqa: E402,F401  (scripts/; launcher_ui uses it)
 DATA_DIR = Path(os.environ.get('GOW3_DATA_DIR', PORT_DIR))
-CONFIG_DIR = Path(os.environ.get('APPDATA') or os.environ.get('USERPROFILE') or PORT_DIR) / 'gravityport-launcher'
+CONFIG_DIR = (Path(os.environ.get('APPDATA') or os.environ.get('USERPROFILE') or PORT_DIR) /
+              ('gravityport-120hz-lab' if PERF_LAB_BUILD else 'gravityport-launcher'))
 CONFIG_FILE = CONFIG_DIR / 'settings.json'
 MOD_PRESETS = DATA_DIR / 'mods_presets.json'
 APP_NAME = 'GravityPort — Gravity Rush Remastered'
@@ -158,6 +163,7 @@ APP_DEFAULTS = {'ui_language': '', 'game_dir': os.environ.get('GOW3_GAME_DIR', '
                 'vk_validation': False, 'close_on_play': False, 'f12_quits': False,
                 'check_updates': False, 'game_patches': {}, 'controls': {}, 'pad_style': 'playstation',
                 'xinput_gyro_stick': False, 'xinput_touchpad_combo': True,
+                'high_fps_trial': False,  # one-shot 120-FPS presenter probe; VBlank stays 60 Hz
                 'last_pkg': '', 'update_check': False,
                 # Play time in seconds, and the save backups made before every start.
                 'save_backup': True, 'save_backup_keep': 10}
@@ -425,6 +431,22 @@ def game_environment(s):
         env['GOW3_GYRO_SENS'] = str(s['gyro_sens'])
     env['GOW3_GYRO_STICK'] = '1' if s.get('xinput_gyro_stick', False) else '0'
     env['GOW3_XINPUT_TOUCHPAD'] = '1' if s.get('xinput_touchpad_combo', True) else '0'
+    # In the active Frontlier session, VideoOut used 60-Hz guest VBlank and
+    # the present limiter was raised from 60 to 120, yielding ~120 FPS.
+    # Preserve VBlank=60 to avoid changing the console timer while evaluating
+    # whether 120 displayed frames are distinct and simulation-safe.
+    # This option is temporary and must be explicitly re-enabled each launch.
+    if s.get('high_fps_trial', False):
+        env['GOW3_VBLANK_HZ'] = '60'
+        env['GOW3_FPS_LIMIT'] = '120'
+        env['GOW3_PRESENT_MODE'] = 'Mailbox'
+        env['GRAVITYPORT_HFR_TRIAL'] = '1'
+    elif PERF_LAB_BUILD:
+        # The LAB is always 60 FPS by default, regardless of the source INI
+        # or a user's old FPS limiter; one-shot mode is opt-in each time.
+        env['GOW3_VBLANK_HZ'] = '60'
+        env['GOW3_FPS_LIMIT'] = '60'
+        env['GOW3_PRESENT_MODE'] = 'Mailbox'
     env.setdefault('GOW3_FPS_LOG', '1')  # FPS and worst frame every 5 s in the log (diagnostics)
     env.setdefault('GOW3_FRAME_STATS', '1')  # draws, compiles and stalls every 5 s (diagnostics)
     # F12 in the game (or creating the trigger file) saves the next frames here, for bug reports
@@ -498,8 +520,17 @@ def play_without_window(settings):
     attach_stdio()
     log_dir = Path(settings.get('user_dir') or DATA_DIR / 'user')
     log_dir.mkdir(parents=True, exist_ok=True)
+    env = game_environment(settings)
+    if settings.get('high_fps_trial', False):
+        # One shot: the next launch returns to the stable present cap even
+        # after a crash. Persist before starting any game subprocess.
+        settings['high_fps_trial'] = False
+        CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+        pending = CONFIG_FILE.with_suffix('.json.new')
+        pending.write_text(json.dumps(settings, ensure_ascii=False, indent=2), encoding='utf-8')
+        os.replace(pending, CONFIG_FILE)
     with open(log_dir / 'last_run.log', 'w', encoding='utf-8', buffering=1) as log:
-        process = subprocess.Popen(run_command(), cwd=PORT_DIR, env=game_environment(settings),
+        process = subprocess.Popen(run_command(), cwd=PORT_DIR, env=env,
                                    stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
                                    stderr=subprocess.STDOUT, creationflags=NO_WINDOW)
         for raw in iter(process.stdout.readline, b''):

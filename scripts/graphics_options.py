@@ -97,6 +97,21 @@ def prepare(config, state_path):
     return options, reverted
 
 
+def validated_engine_fps(options, available):
+    """Protect against advertised-but-absent frame-rate executable patches.
+
+    Returns (safe startup options, optional explanation). This is separate
+    from the one-shot host VBlank experiment, which never requests an
+    unverified game-engine binary patch.
+    """
+    requested = options.get('engine_fps', '60')
+    patch = f'Frame Rate Patch - {requested} FPS'
+    if requested != '60' and patch not in available:
+        return {**options, 'engine_fps': '60'}, (
+            f'{patch} is unavailable for this game build; engine_fps was reset to 60')
+    return options, None
+
+
 def patch_names(names, options, texture_fix_available=True, camera_fix_available=False):
     """The launcher's patch list with the resolution and frame rate patches of `options`."""
     names = [n for n in names if not n.startswith((RESOLUTION_PREFIX, FPS_PREFIX, SHADOW_PREFIX))]
