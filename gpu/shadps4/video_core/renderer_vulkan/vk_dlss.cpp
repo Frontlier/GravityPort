@@ -192,8 +192,10 @@ void Dlss::Initialize(vk::Instance instance, vk::PhysicalDevice physical, vk::De
         return;
     }
     impl->initialized = true;
-    // gow3: NGX's start-up sometimes never returned (the game then stayed on a black screen).
-    // It runs on its own thread; after 8 s the game goes on without DLSS (FSR 3.1 instead).
+    // gow3: NGX may block on driver-internal initialization. Do not block
+    // normal users indefinitely: 8 seconds is the production safety limit.
+    // For diagnostics only, GOW3_DLSS_INIT_TIMEOUT_SECONDS=25 lets the
+    // isolated Graphics Lab distinguish slow NGX startup from a deadlock.
     struct Start {
         std::mutex mutex;
         std::condition_variable done_cv;
@@ -201,10 +203,20 @@ void Dlss::Initialize(vk::Instance instance, vk::PhysicalDevice physical, vk::De
     };
     auto start = std::make_shared<Start>();
     const auto* api = impl->api;
+    const int timeout = [] {
+        if (const char* requested = std::getenv("GOW3_DLSS_INIT_TIMEOUT_SECONDS")) {
+            return std::clamp(std::atoi(requested), 8, 35);
+        }
+        return 8;
+    }();
+    std::printf("DLSS: starting NVIDIA NGX Vulkan initialization (timeout %ds)\n", timeout);
+    std::fflush(stdout);
     const auto get_instance = VULKAN_HPP_DEFAULT_DISPATCHER.vkGetInstanceProcAddr;
     const auto get_device = VULKAN_HPP_DEFAULT_DISPATCHER.vkGetDeviceProcAddr;
     std::thread([start, api, instance, physical, device, get_instance, get_device] {
         const bool ok = api->Initialize(instance, physical, device, get_instance, get_device);
+        std::printf("DLSS: NVIDIA NGX Initialize returned %s\n", ok ? "OK" : "FAIL");
+        std::fflush(stdout);
         std::scoped_lock lock{start->mutex};
         start->ok = ok;
         start->done = true;
@@ -212,8 +224,9 @@ void Dlss::Initialize(vk::Instance instance, vk::PhysicalDevice physical, vk::De
     }).detach();
     {
         std::unique_lock lock{start->mutex};
-        if (!start->done_cv.wait_for(lock, std::chrono::seconds(8), [&] { return start->done; })) {
-            return impl->Disable("NVIDIA NGX did not start within 8 seconds (FSR 3.1 is used)");
+        if (!start->done_cv.wait_for(lock, std::chrono::seconds(timeout), [&] { return start->done; })) {
+            return impl->Disable("NVIDIA NGX did not start within configured timeout "
+                                 "(FSR 3.1 is used)");
         }
     }
     if (!start->ok) {

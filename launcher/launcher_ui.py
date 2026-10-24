@@ -27,6 +27,7 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageTk
 import lang as engine_translations
 from gravityport_pt import EXTRA as PORTUGUESE_TEXTS
 from gravityport_dashboard import render_dashboard
+from assets import fsr4_v07_problem
 
 # Frozen (Gravity Rush Launcher.exe), the code runs from PyInstaller's temporary folder: the files live in
 # the launcher folder beside the executable.
@@ -500,14 +501,22 @@ def mode_table():
 # Anti-aliasing: the game's FXAA, a temporal pass on the scene (gravityrush.ini upscaler; it replaces
 # the FXAA while it runs), or none. DLAA only when the DLSS libraries are installed.
 AA_CHOICES = [('fxaa', 'FXAA (as on PS4)'), ('taa', 'TAA'), ('fsr3', 'FSR 3.1'), ('off', 'Off')]
-TEMPORAL_AA = ('taa', 'fsr3', 'dlss')
-AA_HINTS = {'fxaa': "FXAA: the game's own edge smoothing, as on the PS4. The lightest.", 'taa': 'TAA: smooths edges over several frames, steadier than FXAA, a little softer.', 'fsr3': 'FSR 3.1: sharp, steady anti-aliasing. With a render resolution below your screen it also enlarges the image to the screen.', 'dlss': 'DLSS: NVIDIA’s anti-aliasing for RTX cards. Like FSR 3.1, it enlarges a lower render resolution to the screen.', 'off': 'Off: no smoothing. The sharpest image, with jagged edges.'}
+TEMPORAL_AA = ('taa', 'fsr3', 'dlss', 'fsr4')
+AA_HINTS = {'fxaa': "FXAA: the game's own edge smoothing, as on the PS4. The lightest.", 'taa': 'TAA: smooths edges over several frames, steadier than FXAA, a little softer.', 'fsr3': 'FSR 3.1: sharp, steady anti-aliasing. With a render resolution below your screen it also enlarges the image to the screen.', 'dlss': 'DLSS Super Resolution on NVIDIA RTX. Uses the NVIDIA NGX Vulkan bridge and signed SDK.', 'fsr4': 'FSR 4 v07 Vulkan INT8 (experimental): community model, not the official AMD DX12 FSR 4 API. Requires Vulkan dot products and model files.', 'off': 'Off: no smoothing. The sharpest image, with jagged edges.'}
 
 
 def dlss_installed():
     folders = [Path(sys.executable).parent / 'bin', Path(sys.executable).parent / 'out',
                Path(__file__).resolve().parent.parent / 'out']
     return any((f / 'gow3_dlss.dll').is_file() and (f / 'nvngx_dlss.dll').is_file() for f in folders)
+
+
+def fsr4_v07_available_modes():
+    folder = (Path(sys.executable).resolve().parent if getattr(sys, 'frozen', False)
+              else Path(__file__).resolve().parent.parent) / 'fsr4_shaders'
+    tier = '2160' if screen_size()[1] > 1080 else '1080'
+    return tuple(mode for mode in UPSCALE_MODES
+                 if fsr4_v07_problem(folder, tier, mode) is None)
 
 
 def aa_mode(ini):
@@ -1280,7 +1289,8 @@ class LauncherWindow:
     # ---- window ----------------------------------------------------------------------------
     def build_window(self):
         root, tk = self.root, self.tk
-        root.title('GravityPort 120Hz LAB | Gravity Rush Remastered' if self.logic.PERF_LAB_BUILD
+        root.title('GravityPort Graphics LAB | Gravity Rush Remastered' if self.logic.GRAPHICS_LAB_BUILD
+                   else 'GravityPort 120Hz LAB | Gravity Rush Remastered' if self.logic.PERF_LAB_BUILD
                    else 'GravityPort | Gravity Rush Remastered')
         root.configure(bg='#081421')
         width, height = self.px(W), self.px(H)
@@ -1760,12 +1770,25 @@ class LauncherWindow:
                  'Used in Fullscreen and Borderless, while the game runs. Windowed keeps the Windows setting.')
 
         self.sec(body, 'IMAGE QUALITY')
-        aa_choices = AA_CHOICES[:3] + [('dlss', 'DLSS')] + AA_CHOICES[3:] if dlss_installed() else AA_CHOICES
+        aa_choices = AA_CHOICES[:3]
+        if dlss_installed():
+            aa_choices.append(('dlss', 'DLSS Super Resolution'))
+        if fsr4_v07_available_modes():
+            aa_choices.append(('fsr4', 'FSR 4 v07 Vulkan (experimental)'))
+        aa_choices.extend(AA_CHOICES[3:])
         mode = aa_mode(self.ini)
 
         def set_aa(chosen):
             self.ini['upscaler'] = chosen if chosen in TEMPORAL_AA else 'off'
             self.ini['fxaa'] = '0' if chosen == 'off' else '1'
+            if chosen == 'fsr4':
+                # Installers can ship a single verified Quality preset first.
+                # Do not select a model without matching compiled shaders.
+                modes = fsr4_v07_available_modes()
+                if modes:
+                    selected = 'quality' if 'quality' in modes else modes[0]
+                    self.ini['preset'] = str(UPSCALE_MODES.index(selected))
+                    self.ini['render_resolution'] = mode_table()[UPSCALE_MODES.index(selected)]
             self.save()
             self.refresh_status()
             self.reopen_page()  # the hint and the FSR 1.0 rows follow the mode
@@ -1774,14 +1797,19 @@ class LauncherWindow:
         current = self.ini.get('render_resolution', 'native')
         if current not in dict(RESOLUTION_CHOICES):
             current = 'native'
-        if mode in ('fsr3', 'dlss'):
+        if mode in ('fsr3', 'dlss', 'fsr4'):
             table = mode_table()
             chosen = UPSCALE_MODES[table.index(current)] if current in table else ''
             labels = [('native', 'DLAA' if mode == 'dlss' else 'Native'), ('quality', 'Quality'),
                       ('balanced', 'Balanced'), ('performance', 'Performance')]
+            if mode == 'fsr4':
+                supported = fsr4_v07_available_modes()
+                labels = [(key, label) for key, label in labels if key in supported]
 
             def set_mode(name):
                 self.ini['render_resolution'] = table[UPSCALE_MODES.index(name)]
+                if mode == 'fsr4':
+                    self.ini['preset'] = str(UPSCALE_MODES.index(name))
                 self.save()
                 self.reopen_page()
             w, h = RESOLUTION_SIZES[current]
@@ -1824,6 +1852,12 @@ class LauncherWindow:
             self.row(body, 'Sharpening', make_sharpening,
                      'Sharpens the final image with FSR 1.0, when the game image is smaller than the screen. 0: off.')
 
+        if self.logic.GRAPHICS_LAB_BUILD:
+            self.hint(body, 'DLSS Frame Generation (Streamline): not implemented yet. '
+                      'For NVIDIA driver-based frame interpolation on Vulkan, '
+                      'use NVIDIA App > Graphics > Program Settings > Smooth Motion '
+                      'for this Lab bin/gravityrush-runtime.exe. '
+                      'Smooth Motion is NOT DLSS Frame Generation.')
         self.sec(body, 'DETAILS')
         shadows = self.ini.get('shadow_quality', 'standard')
         self.row(body, 'Shadow quality',

@@ -35,11 +35,14 @@ PORT_DIR = Path(sys.executable).resolve().parent if FROZEN else Path(__file__).r
 # application's preferences or saves by accident. Its own directory
 # controls only the test build, not the production installation.
 PERF_LAB_BUILD = FROZEN and PORT_DIR.name == 'GravityPort 120Hz Lab'
+GRAPHICS_LAB_BUILD = FROZEN and PORT_DIR.name == 'GravityPort Graphics Lab'
 sys.path.insert(0, str(PORT_DIR / 'scripts'))
 import save_backup  # noqa: E402,F401  (scripts/; launcher_ui uses it)
 DATA_DIR = Path(os.environ.get('GOW3_DATA_DIR', PORT_DIR))
 CONFIG_DIR = (Path(os.environ.get('APPDATA') or os.environ.get('USERPROFILE') or PORT_DIR) /
-              ('gravityport-120hz-lab' if PERF_LAB_BUILD else 'gravityport-launcher'))
+              ('gravityport-graphics-lab' if GRAPHICS_LAB_BUILD
+               else 'gravityport-120hz-lab' if PERF_LAB_BUILD
+               else 'gravityport-launcher'))
 CONFIG_FILE = CONFIG_DIR / 'settings.json'
 MOD_PRESETS = DATA_DIR / 'mods_presets.json'
 APP_NAME = 'GravityPort — Gravity Rush Remastered'
@@ -431,6 +434,10 @@ def game_environment(s):
         env['GOW3_GYRO_SENS'] = str(s['gyro_sens'])
     env['GOW3_GYRO_STICK'] = '1' if s.get('xinput_gyro_stick', False) else '0'
     env['GOW3_XINPUT_TOUCHPAD'] = '1' if s.get('xinput_touchpad_combo', True) else '0'
+    if GRAPHICS_LAB_BUILD:
+        # NVIDIA NGX may need more than the stock 8 seconds on a cold start.
+        # Never increase the wait in production until it is tested broadly.
+        env['GOW3_DLSS_INIT_TIMEOUT_SECONDS'] = '25'
     # In the active Frontlier session, VideoOut used 60-Hz guest VBlank and
     # the present limiter was raised from 60 to 120, yielding ~120 FPS.
     # Preserve VBlank=60 to avoid changing the console timer while evaluating
