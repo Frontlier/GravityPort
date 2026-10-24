@@ -83,3 +83,15 @@ de QA próprio; não classificaremos a versão como final antes disso.
 - Prévia local inclui cópias de 182 arquivos de aviso/licença, mas
   release externo ainda depende de auditoria completa.
 - CI de código-fonte para Windows definida em .github/workflows.
+
+## Publicações e segurança do GitHub
+
+- Repositório privado Frontlier/GravityPort, sem dados de jogo.
+- O workflow de origem chamado Build and release (Windows) foi
+  desativado, porque publicava pacotes automaticamente em tags.
+- Dois jobs herdados que estavam iniciados foram cancelados.
+- O GitHub Actions GravityPort - Source QA permanece ativo.
+- Nenhuma release pública ou binário foi enviado. Só o código privado
+  e a tag de desenvolvimento estão versionados.
+- O empacotamento de releases será reintroduzido somente após QA da
+  campanha e revisão das licenças/artefatos.
