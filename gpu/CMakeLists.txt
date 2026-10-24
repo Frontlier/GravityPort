@@ -169,7 +169,7 @@ if (WIN32 AND GOW3_FRAMEGEN_POC)
     endif()
     target_compile_definitions(gow3gpu PRIVATE GOW3_FRAMEGEN_POC=1)
     target_include_directories(gow3gpu PRIVATE "${GOW3_STREAMLINE_SDK_ROOT}/include")
-    target_link_libraries(gow3gpu PRIVATE wintrust crypt32)
+    target_link_libraries(gow3gpu PRIVATE wintrust crypt32 bcrypt)
 endif()
 # In-game settings menu: Dear ImGui (third_party/imgui, MIT) with its Vulkan backend, and an
 # embedded Cyrillic font (third_party/fonts).

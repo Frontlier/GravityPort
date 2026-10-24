@@ -22,6 +22,7 @@
 #include <filesystem>
 #include <mutex>
 #include <string>
+#include <string_view>
 
 #include <sl.h>
 #include <sl_dlss_g.h>
