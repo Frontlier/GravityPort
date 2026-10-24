@@ -144,7 +144,8 @@ def external_patches(directory, app_version, exclude, ids):
             print(f'Patches: {path.name}: {error}',file=sys.stderr)
             continue
         file_ids={e.text.strip() for e in root.iter('ID') if e.text}
-        if file_ids and not file_ids&ids: continue
+        # Game profiles store identifiers in a tuple; compare sets explicitly.
+        if file_ids and file_ids.isdisjoint(ids): continue
         for meta in root.iter('Metadata'):
             if meta.get('AppVer')==app_version and meta.get('AppElf','eboot.bin')=='eboot.bin':
                 found.append((f'{path.name}/{meta.get("Name")}',path,meta))

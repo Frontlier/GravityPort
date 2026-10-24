@@ -25,7 +25,7 @@ empacotar Gravity Rush.
 - Launcher oferece opções para habilitar esses fallbacks.
 - Testes automatizados de mapeamento de botões, indicador e entrada virtual.
 
-## Próxima etapa: launcher nativo do Windows
+## Etapa 0.2: launcher nativo do Windows (implementada em prévia)
 
 Modernizar o Tkinter/Pillow existente (sem navegador/web server):
 navegação, identidade visual GravityPort, português brasileiro, área de

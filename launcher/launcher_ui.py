@@ -24,13 +24,16 @@ import time
 import webbrowser
 
 from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageTk
+import lang as engine_translations
+from gravityport_pt import EXTRA as PORTUGUESE_TEXTS
+from gravityport_dashboard import render_dashboard
 
 # Frozen (Gravity Rush Launcher.exe), the code runs from PyInstaller's temporary folder: the files live in
 # the launcher folder beside the executable.
 HERE = Path(sys.executable).resolve().parent / 'launcher' if getattr(sys, 'frozen', False) else Path(__file__).resolve().parent
 FONT_FILE = HERE / 'fonts' / 'Cabin.ttf'
 BACKGROUND = HERE / 'assets' / 'background.png'   # a player's own picture (optional, never in the repository)
-DEFAULT_BACKGROUND = HERE / 'background.jpg'      # the launcher's own picture (no game characters)
+DEFAULT_BACKGROUND = HERE / 'gravityport-background.png'  # original GravityPort artwork, no game assets
 
 # Design size; everything is scaled from it.
 W, H = 1120, 700
@@ -38,13 +41,13 @@ SIDEBAR_W = 272
 
 # Dark theme: glass over the background picture, opaque cards for the pages (Tk widgets need a
 # solid background), one gold accent.
-CARD, FIELD, FIELD_HI = '#12171d', '#1b222b', '#232c37'   # card and dialogs; inputs (normal, hover)
-LINE, LINE2, LINE3 = '#252e38', '#34404d', '#465361'       # rules, input borders, hovered borders
-TEXT, TEXT2, TEXT3 = '#eef1f5', '#a9b2be', '#76818f'       # text, secondary text, captions
-ACCENT, ACCENT_HI, ACCENT_LO, ON_ACCENT = '#f0b23e', '#f6c45f', '#d89a27', '#1b1306'
-OK_C, WARN_C = '#43c584', '#f0a63e'
-CONSOLE_BG = '#0b0f14'
-GLASS = (11, 15, 20, 222)  # the sidebar over the picture
+CARD, FIELD, FIELD_HI = '#101927', '#172739', '#203349'
+LINE, LINE2, LINE3 = '#273e51', '#365369', '#57768d'
+TEXT, TEXT2, TEXT3 = '#eefbff', '#b2c8d5', '#7894a7'
+ACCENT, ACCENT_HI, ACCENT_LO, ON_ACCENT = '#65e6cf', '#a0f8e5', '#32bba9', '#0a2730'
+OK_C, WARN_C = '#62e0b6', '#f2be7a'
+CONSOLE_BG = '#081421'
+GLASS = (7, 18, 30, 235)  # the sidebar over the picture
 # The names the pages use.
 PAPER, PAPER2, INK, MU, SD, TX = CARD, FIELD_HI, CONSOLE_BG, TEXT2, TEXT, TEXT
 UI_FONT, UI_FONT_SEMI = 'Segoe UI', 'Segoe UI Semibold'  # Windows' own font
@@ -53,7 +56,7 @@ UI_FONT, UI_FONT_SEMI = 'Segoe UI', 'Segoe UI Semibold'  # Windows' own font
 # Texts in the European set (EFIGS: English, French, Italian, German, Spanish). Each row: English,
 # Italian, French, German, Spanish. The launcher follows Windows unless a language is chosen.
 
-LANGUAGES = [('it', 'Italiano'), ('en', 'English'), ('fr', 'Français'), ('de', 'Deutsch'), ('es', 'Español')]
+LANGUAGES = [('pt', 'Português (Brasil)'), ('en', 'English'), ('it', 'Italiano'), ('fr', 'Français'), ('de', 'Deutsch'), ('es', 'Español')]
 _ROWS = [
     ('Play', 'Avvia', 'Jouer', 'Spielen', 'Jugar'),
     ('Game', 'Gioco', 'Jeu', 'Spiel', 'Juego'),
@@ -404,6 +407,7 @@ _ROWS = [
     ('Updated to version {}', 'Aggiornato alla versione {}', 'Mis à jour vers la version {}', 'Auf Version {} aktualisiert', 'Actualizado a la versión {}'),
 ]
 TRANSLATIONS = {code: {row[0]: row[i] for row in _ROWS} for i, code in enumerate(('it', 'fr', 'de', 'es'), 1)}
+TRANSLATIONS['pt'] = {**engine_translations.table('pt'), **PORTUGUESE_TEXTS}
 LANG = 'en'
 
 
@@ -440,7 +444,7 @@ def refresh_rates():
 
 
 def t(text):
-    return TRANSLATIONS.get(LANG, {}).get(text, text)
+    return TRANSLATIONS.get(LANG, {}).get(text) or text
 
 
 def pick_language(choice, windows):
@@ -695,15 +699,19 @@ class Painter:
         return img
 
     def brand(self, icon):
-        """The port's icon (a rounded tile), the wordmark and REMASTERED."""
+        """Original GravityPort geometric mark and compact wordmark, drawn natively."""
         k = self.s * 2
-        img = self.canvas(236, 48)
+        img = self.canvas(236, 56)
         d = ImageDraw.Draw(img)
-        if icon is not None:
-            size = round(46 * k)
-            img.alpha_composite(icon.resize((size, size), Image.LANCZOS), (0, round(1 * k)))
-        text_in(d, 58 * k, 4 * k, 24 * k, 'GRAVITY RUSH', pil_font(19 * k, 700), rgba(TEXT), .05 * 19 * k)
-        text_in(d, 59 * k, 29 * k, 14 * k, 'REMASTERED', pil_font(10.5 * k, 600), rgba(ACCENT), .3 * 10.5 * k)
+        d.rounded_rectangle((2*k, 2*k, 47*k, 47*k), 12*k,
+                            fill=(24, 77, 91, 255), outline=rgba(ACCENT, 155), width=max(1, round(k)))
+        d.polygon([(24*k, 8*k), (42*k, 18*k), (42*k, 35*k),
+                   (24*k, 45*k), (7*k, 35*k), (7*k, 18*k)],
+                  outline=rgba(ACCENT, 200))
+        text_in(d, 10*k, 12*k, 26*k, 'GP', pil_font(17*k, 700), rgba(ACCENT))
+        text_in(d, 58*k, 4*k, 27*k, 'GRAVITYPORT', pil_font(18*k, 700), rgba(TEXT))
+        text_in(d, 59*k, 31*k, 15*k, 'WINDOWS NATIVE PORT', pil_font(9*k, 600),
+                rgba(ACCENT), .13*9*k)
         return self.done(img)
 
     def nav_item(self, label, icon, look):
@@ -1197,8 +1205,8 @@ class DashLine:
 # ---------------------------------------------------------------------------------------------
 # The window.
 
-NAV = [('game', 'Game'), ('video', 'Video'), ('controls', 'Controls'), ('advanced', 'Advanced'), ('log', 'Log & diagnostics')]
-NAV_ICONS = {'game': 'folder', 'video': 'monitor', 'controls': 'gamepad', 'advanced': 'sliders', 'log': 'terminal'}
+NAV = [('dashboard', 'Dashboard'), ('game', 'Game'), ('video', 'Video'), ('controls', 'Controls'), ('advanced', 'Advanced'), ('log', 'Log & diagnostics')]
+NAV_ICONS = {'dashboard': 'monitor', 'game': 'folder', 'video': 'monitor', 'controls': 'gamepad', 'advanced': 'sliders', 'log': 'terminal'}
 # The layout (design units). Sidebar: brand, menu, status, play button, version. The pages' card,
 # dialogs and notices stay right of the sidebar, so nothing ever covers the menu.
 BRAND_X, BRAND_Y = 22, 26
@@ -1272,21 +1280,21 @@ class LauncherWindow:
     # ---- window ----------------------------------------------------------------------------
     def build_window(self):
         root, tk = self.root, self.tk
-        root.title('Gravity Rush Launcher')
-        root.configure(bg='#2b3a36')
+        root.title('GravityPort | Gravity Rush Remastered')
+        root.configure(bg='#081421')
         width, height = self.px(W), self.px(H)
         x = (root.winfo_screenwidth() - width) // 2
         y = (root.winfo_screenheight() - height) // 2
         root.geometry(f'{width}x{height}+{x}+{y}')
         root.resizable(False, False)
         try:
-            root.iconbitmap(default=str(HERE / 'gravityrush.ico'))
+            root.iconbitmap(default=str(HERE / 'gravityport.ico'))
         except tk.TclError:
             pass
         root.overrideredirect(True)
         root.after(10, self.taskbar_entry)
         root.bind('<Map>', self.restore_frameless)
-        self.cv = tk.Canvas(root, width=width, height=height, highlightthickness=0, bd=0, bg='#2b3a36')
+        self.cv = tk.Canvas(root, width=width, height=height, highlightthickness=0, bd=0, bg='#081421')
         self.cv.pack()
         self.cv.bind('<Button-1>', self.click_background)
         root.bind('<Escape>', self.escape)
@@ -1340,14 +1348,10 @@ class LauncherWindow:
         cv.tag_bind(self.win, '<Motion>', self.window_hover)
         cv.tag_bind(self.win, '<Leave>', lambda e: cv.itemconfigure(self.win, image=self.win_images[0]))
         cv.tag_bind(self.win, '<Button-1>', self.window_click)
-        # Brand: the port's icon and the wordmark.
-        try:
-            icon = Image.open(HERE / 'gravityrush.png').convert('RGBA')
-        except OSError:
-            icon = None
-        self.photos['brand'] = ImageTk.PhotoImage(paint.brand(icon))
+        # GravityPort uses an original geometric mark; no commercial game art.
+        self.photos['brand'] = ImageTk.PhotoImage(paint.brand(None))
         self.brand = cv.create_image(self.px(BRAND_X), self.px(BRAND_Y), anchor='nw', image=self.photos['brand'])
-        cv.tag_bind(self.brand, '<Button-1>', lambda e: self.modal_items or self.open_page(None))
+        cv.tag_bind(self.brand, '<Button-1>', lambda e: self.modal_items or self.open_page('dashboard'))
         # Menu, status, play button, version.
         self.nav_items = {}
         self.nav_hover = None
@@ -1356,13 +1360,16 @@ class LauncherWindow:
         self.refresh_status()
         self.play = None
         self.render_play()
-        self.ver = cv.create_text(self.px(SIDEBAR_W / 2), self.px(H - 24), text=t('Version {}').format(self.logic.VERSION),
-                                  fill=TEXT3, font=self.font(11.5))
+        self.ver = cv.create_text(self.px(SIDEBAR_W / 2), self.px(H - 24),
+                                  text='GRAVITYPORT 0.2 PREVIEW  /  CORE ' + self.logic.VERSION,
+                                  fill=TEXT3, font=self.font(9.5))
         # Card (hidden until a page opens), dialog and notice.
         self.panel_items = []
         self.modal_items = []
         self.toast_items = []
         self.drop_in()
+        # Native dashboard is the initial workspace; old pages remain available.
+        self.root.after(500, lambda: self.open_page('dashboard') if self.root.winfo_exists() else None)
 
     def place_background(self):
         x = -18 + -self.bg_excess * self.bg_pos + self.par[0]
@@ -1668,6 +1675,9 @@ class LauncherWindow:
                       wraplength=self.px(PANEL_W - 120)).pack(fill='x', pady=(self.px(4), self.px(8)))
 
     # ---- the pages ---------------------------------------------------------------------------
+    def page_dashboard(self, body, foot):
+        render_dashboard(self, body, foot)
+
     def page_game(self, body, foot):
         logic = self.logic
         self.sec(body, 'FOLDERS', first=True)
@@ -1845,9 +1855,25 @@ class LauncherWindow:
         except (AttributeError, self.tk.TclError):
             pass
 
+    def open_pad_tester(self):
+        """Open the read-only SDL3 device laboratory as a separate native window."""
+        if getattr(sys, 'frozen', False):
+            command = [sys.executable, '--test-pad']
+        else:
+            command = [sys.executable, str(self.logic.PORT_DIR / 'launcher' /
+                                           'gravityrush_launcher.py'), '--test-pad']
+        env = os.environ.copy()
+        root = env.get('MSYS2_ROOT', 'C:/msys64')
+        env['PATH'] = str(Path(root) / 'clang64' / 'bin') + os.pathsep + env.get('PATH', '')
+        try:
+            subprocess.Popen(command, cwd=str(self.logic.PORT_DIR), env=env)
+        except OSError as exc:
+            self.toast('Não foi possível abrir o teste de controle: ' + str(exc))
+
     def page_controls(self, body, foot):
         tk, logic = self.tk, self.logic
         self.sec(body, 'XBOX / XINPUT', first=True)
+        self.buttons(body, [('Test controller', self.open_pad_tester)])
         self.toggle_row(body, 'Simulate gyro: L3 + right stick',
                         self.app.get('xinput_gyro_stick', False),
                         lambda v: self.set_app('xinput_gyro_stick', v),
@@ -2089,19 +2115,19 @@ class LauncherWindow:
         return 'break'
 
     def shortcut(self):
-        """Gravity Rush.lnk (plays with the saved settings) and Gravity Rush Launcher.lnk on the desktop."""
+        """GravityPort.lnk and GravityPort Launcher.lnk, with native app icons."""
         logic = self.logic
         if logic.FROZEN:
             game = logic.PORT_DIR / logic.GAME_EXE
-            links = [('Gravity Rush', game if game.is_file() else Path(sys.executable), '--play' if not game.is_file() else ''),
-                     ('Gravity Rush Launcher', Path(sys.executable), '')]
-            icon = HERE / 'gravityrush.ico'
+            links = [('GravityPort', game if game.is_file() else Path(sys.executable), '--play' if not game.is_file() else ''),
+                     ('GravityPort Launcher', Path(sys.executable), '')]
+            icon = HERE / 'gravityport.ico'
         else:  # a source tree: the launcher script with the windowless Python
             pythonw = Path(sys.executable).with_name('pythonw.exe')
             python = pythonw if pythonw.exists() else Path(sys.executable)
             script = HERE / 'gravityrush_launcher.py'
-            links = [('Gravity Rush', python, f'"{script}" --play'), ('Gravity Rush Launcher', python, f'"{script}"')]
-            icon = HERE / 'gravityrush.ico'
+            links = [('GravityPort', python, f'"{script}" --play'), ('GravityPort Launcher', python, f'"{script}"')]
+            icon = HERE / 'gravityport.ico'
         command = ''
         for name, target, arguments in links:
             command += ('$s=(New-Object -ComObject WScript.Shell).CreateShortcut([Environment]::GetFolderPath("Desktop")'

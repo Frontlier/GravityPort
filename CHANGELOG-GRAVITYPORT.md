@@ -13,3 +13,14 @@
 
 - Interface nativa GravityPort para Windows, português brasileiro e
   diagnóstico de hardware/controle, preservando a lógica original.
+
+## 0.2.0-native-preview — 24/10/2026
+
+- Launcher nativo em português, com identidade visual GravityPort e tela inicial
+  de diagnóstico (FPS histórico, p99, resolução, saves e controle).
+- Preservadas as cinco páginas existentes do port e a lógica de runtime.
+- Central SDL3 em Tkinter para testar botões, eixos e presença de sensores.
+- Preferências isoladas da instalação original e atualizações privadas desativadas.
+- Fundo geométrico/ícone original e empacotamento via PyInstaller.
+- Testes de unidade e smoke test do aplicativo nativo.
+- Release público e QA de gameplay ainda pendentes.

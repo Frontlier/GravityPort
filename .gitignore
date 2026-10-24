@@ -24,6 +24,7 @@ mods.json
 patches.json
 !launcher/gow3.png
 !launcher/gravityrush.png
+!launcher/gravityport-background.png
 !packaging/windows/icon_source.png
 # Local logs of builds and test runs (build.sh, run.py output)
 logs/
@@ -62,6 +63,7 @@ savedata/
 *.7z
 *.msi
 *.exe
+*.lnk
 # Developer machine paths and backup folders
 local.json
 backups/

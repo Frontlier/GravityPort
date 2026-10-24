@@ -28,16 +28,16 @@ import webbrowser
 import zipfile
 
 FROZEN = getattr(sys, 'frozen', False)
-LAUNCHER_EXE = 'Gravity Rush Launcher.exe'  # this program, frozen
-GAME_EXE = 'Gravity Rush.exe'               # packaging/windows/play.c: plays with the saved settings
+LAUNCHER_EXE = 'GravityPort Launcher.exe'  # native GravityPort Windows application
+GAME_EXE = 'GravityPort.exe'                # optional direct-play shortcut
 PORT_DIR = Path(sys.executable).resolve().parent if FROZEN else Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PORT_DIR / 'scripts'))
 import save_backup  # noqa: E402,F401  (scripts/; launcher_ui uses it)
 DATA_DIR = Path(os.environ.get('GOW3_DATA_DIR', PORT_DIR))
-CONFIG_DIR = Path(os.environ.get('APPDATA') or os.environ.get('USERPROFILE') or PORT_DIR) / 'gravityrush-launcher'
+CONFIG_DIR = Path(os.environ.get('APPDATA') or os.environ.get('USERPROFILE') or PORT_DIR) / 'gravityport-launcher'
 CONFIG_FILE = CONFIG_DIR / 'settings.json'
 MOD_PRESETS = DATA_DIR / 'mods_presets.json'
-APP_NAME = 'Gravity Rush'
+APP_NAME = 'GravityPort — Gravity Rush Remastered'
 MAX_LOG_LINES = 6000
 NO_WINDOW = getattr(subprocess, 'CREATE_NO_WINDOW', 0)
 # This build. A release package's launcher looks for a newer release on GitHub when it opens
@@ -46,14 +46,14 @@ NO_WINDOW = getattr(subprocess, 'CREATE_NO_WINDOW', 0)
 # makes this build compare as an older version.
 VERSION = '0.1.8'
 RELEASES_API = os.environ.get('GR_UPDATE_API') or \
-    'https://api.github.com/repos/LucaPazienza/gravityrush_pc/releases?per_page=20'
-RELEASES_PAGE = 'https://github.com/LucaPazienza/gravityrush_pc/releases'
+    'https://api.github.com/repos/Frontlier/GravityPort/releases?per_page=20'
+RELEASES_PAGE = 'https://github.com/Frontlier/GravityPort/releases'
 INSTALLED_VERSION = os.environ.get('GR_UPDATE_TEST_FROM') or VERSION
 # The Windows package of a release (packaging/windows/package.sh).
 RELEASE_ASSET = re.compile(r'GravityRush-PC-[0-9.]+-Windows\.zip', re.IGNORECASE)
 UPDATE_DIR = Path(tempfile.gettempdir()) / 'gravityrush-update'
 # Updates install only over a release package (runtime in bin/); a development copy updates with git.
-IS_RELEASE = FROZEN and (PORT_DIR / 'bin' / 'gravityrush-runtime.exe').is_file() and not (PORT_DIR / 'build.sh').exists()
+IS_RELEASE = False  # GravityPort private development: no unattended/unsigned upstream updates
 # Never copied over an installation by an update (the package does not hold them either): what
 # players create next to the launcher, at the top of the folder.
 USER_FILES = ('user', 'out', 'mods', 'gravityrush.ini', 'mods.json', 'mods_presets.json', 'patches.json', 'last_run.log')
@@ -158,7 +158,7 @@ APP_DEFAULTS = {'ui_language': '', 'game_dir': os.environ.get('GOW3_GAME_DIR', '
                 'vk_validation': False, 'close_on_play': False, 'f12_quits': False,
                 'check_updates': False, 'game_patches': {}, 'controls': {}, 'pad_style': 'playstation',
                 'xinput_gyro_stick': False, 'xinput_touchpad_combo': True,
-                'last_pkg': '', 'update_check': True,
+                'last_pkg': '', 'update_check': False,
                 # Play time in seconds, and the save backups made before every start.
                 'save_backup': True, 'save_backup_keep': 10}
 
@@ -636,6 +636,10 @@ def install_update(target, wait_pid):
 def main():
     global LANG
     args = sys.argv[1:]
+    if args[:1] == ['--test-pad']:
+        from gravityport_pad_tester import main as controller_test
+        controller_test()
+        return
     if args and args[0] in ('--run', '--script'):
         sys.exit(run_role(args))
     settings = {**APP_DEFAULTS, **load_json(CONFIG_FILE, {})}

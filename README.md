@@ -1,3 +1,16 @@
+> **GRAVITYPORT — private development fork (Frontlier).** This repository retains
+> the complete Git history, source and GPL-2.0-or-later license of the original
+> **Gravity Rush PC Native Port by LucaPazienza**. Our changes add Xbox/XInput
+> compatibility, a Portuguese Windows-native Tkinter launcher, frame diagnostics,
+> and a separate SDL3 controller test window. This is a preview, not a new
+> universal PS4 emulator. **Do not upload or distribute game dumps or console keys.**
+> See [GravityPort development notes](GRAVITYPORT.md) and
+> [Native preview status](docs/GRAVITYPORT-NATIVE-STATUS.md).
+>
+> **Upstream documentation and original project attribution follow below.**
+
+---
+
 # Gravity Rush Remastered — Native PC Port
 
 <p align="center">
