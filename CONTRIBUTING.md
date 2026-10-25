@@ -21,4 +21,4 @@ Informe versão do GravityPort, versão do Windows, GPU e driver, modo de upscal
 
 Código próprio/derivado GPL-2.0-or-later, respeitando licenças específicas de componentes. Não redistribua SDKs ou DLLs NVIDIA proprietários por este repositório; alterações de código devem manter a separação de SDKs licenciados. Modelos de FSR4 devem preservar seus avisos e origens.
 
-Referências: [créditos e colaboradores](docs/GRAVITYPORT-CREDITS.md), [estado técnico](GRAVITYPORT.md), [política de release](docs/PUBLIC-RELEASE.md).
+Referências: [créditos e colaboradores](docs/GRAVITYPORT-CREDITS.md), [estado técnico](GRAVITYPORT.md), [instalador Windows](docs/INSTALLER.md) e [política de release](docs/PUBLIC-RELEASE.md).

@@ -26,9 +26,11 @@ A aplicação nativa **GravityPort Launcher.exe** reúne um lançador Windows (P
 
 ## Download para Windows
 
-Na aba [Releases](https://github.com/Frontlier/GravityPort/releases), obtenha o arquivo **GravityPort-0.4.0-Windows-portable.zip** e seu **.sha256**, extraia o ZIP em uma pasta própria e abra **GravityPort Launcher.exe**. Existe também **GravityPort.exe**, que inicia diretamente o jogo usando as preferências salvas.
+Na aba [Releases](https://github.com/Frontlier/GravityPort/releases), a opção mais simples é **GravityPort-0.4.0-Setup.exe**: execute o instalador, escolha opcionalmente a pasta da sua cópia original do jogo e abra o launcher pelo Menu Iniciar ou pelo atalho da área de trabalho. O instalador não exige Python, não solicita acesso administrativo e preserva configurações/saves existentes.
 
-O pacote público é portátil e não instala serviços, drivers, firmware ou arquivos do jogo. Ele é **prévia**, ainda não um instalador MSI/EXE com assinatura digital. Pode haver alerta do Windows SmartScreen por ausência de assinatura; confira a origem no GitHub e a soma SHA-256 antes de executar. Não ignore alertas em arquivos de terceiros.
+Alternativamente, baixe o **GravityPort-0.4.0-Windows-portable.zip** e seu **.sha256**, extraia-o e abra **GravityPort Launcher.exe**; **GravityPort.exe** inicia diretamente o jogo com as preferências salvas. Veja [guia do instalador](docs/INSTALLER.md) e [instruções de instalação](docs/INSTALACAO.md).
+
+O GravityPort tem **instalador EXE por usuário** e **ZIP portátil**. Nenhum deles inclui arquivos do jogo, instala serviços/drivers ou exige privilégios de administrador. Esta é uma **prévia sem assinatura digital Authenticode**; pode haver alerta do SmartScreen. Confira o download e seu SHA-256 no GitHub, e não ignore avisos de arquivos obtidos de terceiros.
 
 **Requisitos:** Windows 10/11 64 bits; GPU com Vulkan 1.3 e driver atualizado; controle compatível com SDL3 ou teclado/mouse; cópia pessoal compatível de Gravity Rush Remastered para PS4. Versão de jogo testada: **CUSA01113 v01.00**. Testes de DLSS/FSR 4 e 120 FPS ocorreram em **Windows + NVIDIA GeForce RTX 5070, 1080p**; não significam compatibilidade universal.
 

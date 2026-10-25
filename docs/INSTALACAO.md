@@ -2,7 +2,9 @@
 
 ## 1. Baixar e verificar
 
-Baixe o **GravityPort-0.4.0-Windows-portable.zip** em
+**Instalação recomendada (sem Python):** baixe **GravityPort-0.4.0-Setup.exe** na [página oficial de releases](https://github.com/Frontlier/GravityPort/releases/tag/v0.4.0), execute o assistente Windows e escolha opcionalmente a pasta da sua cópia do jogo (a que contém `eboot.bin`). O instalador coloca atalhos no Menu Iniciar e, se você desejar, na área de trabalho. Na conclusão, marque **Abrir GravityPort agora** para continuar. Você pode informar a pasta do jogo também depois, na página **Jogo** do launcher.
+
+**Alternativa portátil:** baixe o **GravityPort-0.4.0-Windows-portable.zip** em
 https://github.com/Frontlier/GravityPort/releases/tag/v0.4.0
 e salve também o arquivo `.sha256` da mesma versão. No PowerShell, execute:
 
@@ -12,7 +14,7 @@ Get-FileHash .\GravityPort-0.4.0-Windows-portable.zip -Algorithm SHA256
 
 Compare o hash com o arquivo `.sha256` publicado na mesma página. Extraia o ZIP em uma pasta sua, como `Documentos\GravityPort`, sem executar de dentro do compactado.
 
-Este é um aplicativo Windows **portátil**, sem instalador MSI e sem assinatura digital própria. Somente execute arquivos provenientes do release oficial que você verificou.
+Existem duas modalidades: instalador **EXE por usuário** ou pasta **ZIP portátil**. Ambas executam o mesmo runtime, não contêm o jogo e **não têm assinatura digital Authenticode**. Confira os checksums SHA-256 publicados na release antes de instalar.
 
 ## 2. Arquivos do jogo
 

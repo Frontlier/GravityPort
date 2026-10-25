@@ -10,7 +10,7 @@ Atualizado em 24/10/2026 (horário de Brasília). O GravityPort tem um **launche
 - Logs de performance com contagem de FPS de apresentação e frametime, opção 60/120 FPS com VBlank do PS4 em 60 Hz.
 - FSR 3.1 e FSR 4 v07 INT8 Vulkan Quality (1080p); correção de cor sRGB→linear→sRGB validada pelo usuário em uma cena jogável e por smoke test.
 - Ponte Vulkan DLSS Super Resolution (NGX), testada em laboratório e no app principal local RTX 5070; DLL NVIDIA **não inclusa no pacote público**.
-- Pacote portátil Windows, hash SHA-256, licenças de dependências e código-fonte correspondente.
+- Pacote Windows portátil ZIP e instalador EXE Inno Setup 6, com SHA-256, licenças e código-fonte. Instalador inclui atalhos, seleção opcional da pasta do jogo, desinstalador e preservação de dados.
 - GitHub Actions com suíte de testes e testes nativos de integração no Frontlier.
 
 ## Não disponível ou em estudo

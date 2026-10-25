@@ -6,7 +6,9 @@ Download: https://github.com/Frontlier/GravityPort/releases/tag/v0.4.0
 Autor do projeto de origem: LucaPazienza (gravityrush_pc)
 Mantenedor do fork: Frontlier. GPL v2 ou posterior, com licencas de terceiros.
 
-1. Descompacte GravityPort-0.4.0-Windows-portable.zip numa pasta propria.
+1. Recomendado: execute GravityPort-0.4.0-Setup.exe para instalar, criar
+   atalhos e selecionar a pasta do jogo que ja possui. Nao precisa Python.
+   Alternativa: descompacte GravityPort-0.4.0-Windows-portable.zip.
 2. Inicie GravityPort Launcher.exe (launcher nativo Windows/Tkinter).
 3. Na pagina Jogo, selecione a pasta do seu Gravity Rush Remastered PS4
    obtido legalmente (CUSA01113 v01.00). O jogo NAO vem no ZIP.
