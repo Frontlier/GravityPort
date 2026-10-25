@@ -77,3 +77,21 @@
 - Inclui suite de regressao, smoke test nativo com perfil isolado,
   copia de rollback e orientacoes em docs/MAIN_DLSS_LOCAL.md.
 - Nenhuma DLL proprietaria ou arquivo do jogo publicado no GitHub.
+
+
+## FSR 4 v07: correção de gama e inclusão no principal (24/10/2026)
+
+- Resolvido o escurecimento e a supersaturação de cores com FSR4 Quality no
+  Gravity Rush Remastered (screenshot e validação manual do usuário).
+- O modelo FSR4 Vulkan agora recebe dados RGBA16F lineares via blit Vulkan de
+  sRGB para float, reconstruindo em HDR linear e recodificando para sRGB
+  antes da composição do HUD; DLSS permanece intacto.
+- Incluída opção FSR4 v07 Quality/1080p na instalação Windows local, somente
+  quando os shaders e pesos reais estão presentes; nenhum modelo entra no Git.
+- Preserva DLSS Super Resolution, 120 FPS apresentados / VBlank 60 Hz,
+  perfil do controle, saves, tela cheia e configurações atuais do vídeo.
+- Adicionados testes automáticos de cor, compilação nativa, smoke test
+  separado do perfil do jogador e instalação com rollback e hash dos saves.
+- O DLSS Frame Generation continua em protótipo, não gera frames neste build.
+- Modelos FSR4 v07, SPIR-V, dados de jogo e DLLs NVIDIA ficam apenas
+  na pasta local, nunca enviados ao repositório privado.

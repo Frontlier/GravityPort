@@ -1,13 +1,14 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 # Build a native, local Windows GravityPort preview; no console/game data included.
 param(
-    [ValidateSet("GravityPort Preview","GravityPort 120Hz Lab","GravityPort Main 120FPS Candidate","GravityPort Main DLSS Candidate","GravityPort Graphics Lab")]
+    [ValidateSet("GravityPort Preview","GravityPort 120Hz Lab","GravityPort Main 120FPS Candidate","GravityPort Main DLSS Candidate","GravityPort Main FSR4 Candidate","GravityPort Graphics Lab","GravityPort FSR4 Color Lab")]
     [string]$PreviewName = "GravityPort Preview",
-    [string]$GraphicsAssets = ""
+    [string]$GraphicsAssets = "",
+    [string]$LauncherVenv = ""
 )
 $ErrorActionPreference = "Stop"
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
-$Venv = Join-Path $Root "out\launcher-venv"
+$Venv = if ($LauncherVenv) { $LauncherVenv } else { Join-Path $Root "out\launcher-venv" }
 $Py = Join-Path $Venv "Scripts\python.exe"
 $SystemPython = Join-Path $env:LOCALAPPDATA "Programs\Python\Python313\python.exe"
 $MsysBin = "C:\msys64\clang64\bin"
@@ -73,8 +74,9 @@ if ($LASTEXITCODE -ne 0) {throw "Collecting third-party licenses failed"}
 if ($GraphicsAssets) {
     # Experimental, local-only. Never put NVIDIA binaries or FSR4 model blobs
     # into Git. Public release distribution needs a separate license review.
-    if ($PreviewName -notin @("GravityPort Graphics Lab","GravityPort Main DLSS Candidate")) {
-        throw "GraphicsAssets are only allowed for the isolated Graphics Lab or a verified Main DLSS Candidate"
+    if ($PreviewName -notin @("GravityPort Graphics Lab","GravityPort FSR4 Color Lab",
+                             "GravityPort Main DLSS Candidate","GravityPort Main FSR4 Candidate")) {
+        throw "GraphicsAssets are only allowed for isolated graphics labs or a verified Main DLSS Candidate"
     }
     $Source = (Resolve-Path -LiteralPath $GraphicsAssets).Path
     $DlssFolder = Join-Path $Source "bin"
@@ -92,7 +94,9 @@ if ($GraphicsAssets) {
     $vendorLicense = Join-Path $DlssFolder "NVIDIA-DLSS-SDK-LICENSE.txt"
     if (-not (Test-Path $vendorLicense)) {throw "The NVIDIA SDK license notice is missing"}
     Copy-Item $vendorLicense (Join-Path $Preview "THIRD-PARTY-LICENSES")
-    if ((Test-Path $ModelFolder) -and $PreviewName -eq "GravityPort Graphics Lab") {
+    if ((Test-Path $ModelFolder) -and
+        $PreviewName -in @("GravityPort Graphics Lab","GravityPort FSR4 Color Lab",
+                         "GravityPort Main FSR4 Candidate")) {
         # Keep the unapproved FSR4 v07 model entirely out of the stable main.
         Copy-Item -LiteralPath $ModelFolder -Destination (Join-Path $Preview "fsr4_shaders") -Recurse
         if (-not (Test-Path (Join-Path $Preview "fsr4_shaders\LICENSE-FSR4-v07.txt"))) {
@@ -105,6 +109,8 @@ if ($GraphicsAssets) {
         foreach ($name in @("GRAPHICS_LAB_DLSS_FSR4.md","DLSS_FRAMEGEN_VULKAN.md")) {
             Copy-Item -LiteralPath (Join-Path $Root "docs\$name") -Destination $DocFolder -Force
         }
+    } elseif ($PreviewName -in @("GravityPort FSR4 Color Lab","GravityPort Main FSR4 Candidate")) {
+        Copy-Item -LiteralPath (Join-Path $Root "docs\FSR4_LINEAR_COLOR_FIX.md") -Destination $DocFolder -Force
     } else {
         Copy-Item -LiteralPath (Join-Path $Root "docs\MAIN_DLSS_LOCAL.md") -Destination $DocFolder -Force
     }

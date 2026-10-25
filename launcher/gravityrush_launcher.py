@@ -35,12 +35,15 @@ PORT_DIR = Path(sys.executable).resolve().parent if FROZEN else Path(__file__).r
 # application's preferences or saves by accident. Its own directory
 # controls only the test build, not the production installation.
 PERF_LAB_BUILD = FROZEN and PORT_DIR.name == 'GravityPort 120Hz Lab'
-GRAPHICS_LAB_BUILD = FROZEN and PORT_DIR.name == 'GravityPort Graphics Lab'
+FSR4_COLOR_LAB_BUILD = FROZEN and PORT_DIR.name == 'GravityPort FSR4 Color Lab'
+GRAPHICS_LAB_BUILD = FROZEN and PORT_DIR.name in (
+    'GravityPort Graphics Lab', 'GravityPort FSR4 Color Lab')
 sys.path.insert(0, str(PORT_DIR / 'scripts'))
 import save_backup  # noqa: E402,F401  (scripts/; launcher_ui uses it)
 DATA_DIR = Path(os.environ.get('GOW3_DATA_DIR', PORT_DIR))
 CONFIG_DIR = (Path(os.environ.get('APPDATA') or os.environ.get('USERPROFILE') or PORT_DIR) /
-              ('gravityport-graphics-lab' if GRAPHICS_LAB_BUILD
+              ('gravityport-fsr4-color-lab' if FSR4_COLOR_LAB_BUILD
+               else 'gravityport-graphics-lab' if GRAPHICS_LAB_BUILD
                else 'gravityport-120hz-lab' if PERF_LAB_BUILD
                else 'gravityport-launcher'))
 CONFIG_FILE = CONFIG_DIR / 'settings.json'

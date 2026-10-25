@@ -588,7 +588,8 @@ void TemporalUpscaler::FinishUpscale() {
             vk::ImageLayout::eGeneral, all, vk::AccessFlagBits2::eShaderRead);
     barrier(vk::Image(slot.upscaled), vk::ImageLayout::eUndefined, all, vk::AccessFlagBits2::eNone,
             vk::ImageLayout::eGeneral, all, rw);
-    // The upscalers work on the sRGB-encoded values (UNORM views): as displayed.
+    // The compose targets contain sRGB-encoded UNORM display values. DLSS uses
+    // those bytes directly; FSR4 v07 requires linear RGBA16F staging.
     const auto unorm = vk::Format::eR8G8B8A8Unorm;
     // Recorded with the jitter of the frame the scene was drawn with.
     const auto next_jitter = jitter;
@@ -613,11 +614,28 @@ void TemporalUpscaler::FinishUpscale() {
                 all, vk::AccessFlagBits2::eShaderRead,
                 vk::ImageLayout::eTransferSrcOptimal, vk::PipelineStageFlagBits2::eTransfer,
                 vk::AccessFlagBits2::eTransferRead);
+        barrier(vk::Image(fsr4_srgb_input), vk::ImageLayout::eUndefined,
+                all, vk::AccessFlagBits2::eNone,
+                vk::ImageLayout::eTransferDstOptimal, vk::PipelineStageFlagBits2::eTransfer,
+                vk::AccessFlagBits2::eTransferWrite);
+        // The display may be R8_UNORM or R8_SRGB. Copy bytes without
+        // conversion into a genuine SRGB VkImage before doing the blit.
+        cmdbuf.copyImage(vk::Image(slot.pre_hud), vk::ImageLayout::eTransferSrcOptimal,
+                         vk::Image(fsr4_srgb_input), vk::ImageLayout::eTransferDstOptimal,
+                         vk::ImageCopy{.srcSubresource = {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
+                                       .dstSubresource = {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
+                                       .extent = {f.width, f.height, 1}});
+        barrier(vk::Image(fsr4_srgb_input), vk::ImageLayout::eTransferDstOptimal,
+                vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferWrite,
+                vk::ImageLayout::eTransferSrcOptimal, vk::PipelineStageFlagBits2::eTransfer,
+                vk::AccessFlagBits2::eTransferRead);
         barrier(vk::Image(opaque_image), vk::ImageLayout::eUndefined,
                 all, vk::AccessFlagBits2::eNone,
                 vk::ImageLayout::eTransferDstOptimal, vk::PipelineStageFlagBits2::eTransfer,
                 vk::AccessFlagBits2::eTransferWrite);
-        cmdbuf.blitImage(vk::Image(slot.pre_hud), vk::ImageLayout::eTransferSrcOptimal,
+        // Vulkan automatically decodes sRGB when blitting SRGB -> FLOAT.
+        // The v07 model now receives linear colors instead of nonlinear RGB8.
+        cmdbuf.blitImage(vk::Image(fsr4_srgb_input), vk::ImageLayout::eTransferSrcOptimal,
                          vk::Image(opaque_image), vk::ImageLayout::eTransferDstOptimal,
                          src_region, vk::Filter::eNearest);
         barrier(vk::Image(opaque_image), vk::ImageLayout::eTransferDstOptimal,
@@ -643,13 +661,32 @@ void TemporalUpscaler::FinishUpscale() {
                     all, vk::AccessFlagBits2::eShaderWrite,
                     vk::ImageLayout::eTransferSrcOptimal, vk::PipelineStageFlagBits2::eTransfer,
                     vk::AccessFlagBits2::eTransferRead);
+            barrier(vk::Image(fsr4_srgb_output), vk::ImageLayout::eUndefined,
+                    all, vk::AccessFlagBits2::eNone,
+                    vk::ImageLayout::eTransferDstOptimal, vk::PipelineStageFlagBits2::eTransfer,
+                    vk::AccessFlagBits2::eTransferWrite);
+            // FLOAT -> SRGB performs the inverse (OETF), restoring the
+            // expected SDR display code values before the HUD is composed.
+            cmdbuf.blitImage(vk::Image(output_image), vk::ImageLayout::eTransferSrcOptimal,
+                             vk::Image(fsr4_srgb_output), vk::ImageLayout::eTransferDstOptimal,
+                             dst_region, vk::Filter::eNearest);
+            barrier(vk::Image(fsr4_srgb_output), vk::ImageLayout::eTransferDstOptimal,
+                    vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferWrite,
+                    vk::ImageLayout::eTransferSrcOptimal, vk::PipelineStageFlagBits2::eTransfer,
+                    vk::AccessFlagBits2::eTransferRead);
             barrier(vk::Image(slot.upscaled), vk::ImageLayout::eGeneral,
                     all, vk::AccessFlagBits2::eNone,
                     vk::ImageLayout::eTransferDstOptimal, vk::PipelineStageFlagBits2::eTransfer,
                     vk::AccessFlagBits2::eTransferWrite);
-            cmdbuf.blitImage(vk::Image(output_image), vk::ImageLayout::eTransferSrcOptimal,
+            // Raw copy from SRGB to UNORM preserves encoded bytes. Both
+            // share the same RGBA8 Vulkan image format-compatibility class.
+            cmdbuf.copyImage(vk::Image(fsr4_srgb_output), vk::ImageLayout::eTransferSrcOptimal,
                              vk::Image(slot.upscaled), vk::ImageLayout::eTransferDstOptimal,
-                             dst_region, vk::Filter::eNearest);
+                             vk::ImageCopy{
+                                 .srcSubresource = {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
+                                 .dstSubresource = {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
+                                 .extent = {f.out_width, f.out_height, 1},
+                             });
             barrier(vk::Image(slot.upscaled), vk::ImageLayout::eTransferDstOptimal,
                     vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferWrite,
                     vk::ImageLayout::eGeneral, all, vk::AccessFlagBits2::eShaderRead);
@@ -780,8 +817,9 @@ bool TemporalUpscaler::EnsureComposeResources(u32 w, u32 h, u32 ow, u32 oh, vk::
             .maxLod = 0.0f,
         }));
     }
+    const bool fsr4_linear_color = UseFsr4();
     if (pre_hud_width == w && pre_hud_height == h && compose_width == ow &&
-        compose_height == oh && compose_format == format) {
+        compose_height == oh && compose_format == format && compose_fsr4 == fsr4_linear_color) {
         return true;
     }
     scheduler.Finish();
@@ -814,7 +852,8 @@ bool TemporalUpscaler::EnsureComposeResources(u32 w, u32 h, u32 ow, u32 oh, vk::
         make(slot.pre_hud, slot.pre_hud_view, format, w, h,
              vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst);
         make(slot.upscaled, slot.upscaled_view, vk::Format::eR8G8B8A8Unorm, ow, oh,
-             vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled);
+             vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled |
+                 vk::ImageUsageFlagBits::eTransferDst);
         make(slot.composed, slot.composed_view, vk::Format::eR8G8B8A8Unorm, ow, oh,
              vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled |
                  vk::ImageUsageFlagBits::eTransferSrc);
@@ -822,6 +861,34 @@ bool TemporalUpscaler::EnsureComposeResources(u32 w, u32 h, u32 ow, u32 oh, vk::
         slot.valid = false;
         slot.used = 0;
     }
+    if (fsr4_linear_color) {
+        // A raw image copy preserves sRGB byte values. A subsequent blit
+        // from an SRGB VkImage to RGBA16F performs hardware sRGB decoding;
+        // an RGBA16F -> SRGB blit encodes the FSR4 output again. The
+        // separate transfer-only images do not change HUD composition.
+        const auto make_srgb_stage = [&](VideoCore::UniqueImage& image, u32 iw, u32 ih) {
+            image = VideoCore::UniqueImage(device, allocator);
+            image.Create(vk::ImageCreateInfo{
+                .imageType = vk::ImageType::e2D,
+                .format = vk::Format::eR8G8B8A8Srgb,
+                .extent = {iw, ih, 1},
+                .mipLevels = 1,
+                .arrayLayers = 1,
+                .samples = vk::SampleCountFlagBits::e1,
+                .tiling = vk::ImageTiling::eOptimal,
+                .usage = vk::ImageUsageFlagBits::eTransferSrc |
+                         vk::ImageUsageFlagBits::eTransferDst,
+                .initialLayout = vk::ImageLayout::eUndefined,
+            });
+        };
+        make_srgb_stage(fsr4_srgb_input, w, h);
+        make_srgb_stage(fsr4_srgb_output, ow, oh);
+        std::printf("Upscaler: FSR 4 corrected sRGB -> linear RGBA16F -> sRGB output\n");
+    } else {
+        fsr4_srgb_input = VideoCore::UniqueImage{};
+        fsr4_srgb_output = VideoCore::UniqueImage{};
+    }
+    compose_fsr4 = fsr4_linear_color;
     pre_hud_width = w;
     pre_hud_height = h;
     compose_width = ow;
