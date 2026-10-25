@@ -55,16 +55,16 @@ NO_WINDOW = getattr(subprocess, 'CREATE_NO_WINDOW', 0)
 # (Advanced > Updates) and installs it when the player agrees. Pre-releases count too (the first
 # releases were previews). Tests: GR_UPDATE_API serves another release list, GR_UPDATE_TEST_FROM
 # makes this build compare as an older version.
-VERSION = '0.1.8'
+VERSION = '0.4.0'
 RELEASES_API = os.environ.get('GR_UPDATE_API') or \
     'https://api.github.com/repos/Frontlier/GravityPort/releases?per_page=20'
 RELEASES_PAGE = 'https://github.com/Frontlier/GravityPort/releases'
 INSTALLED_VERSION = os.environ.get('GR_UPDATE_TEST_FROM') or VERSION
 # The Windows package of a release (packaging/windows/package.sh).
-RELEASE_ASSET = re.compile(r'GravityRush-PC-[0-9.]+-Windows\.zip', re.IGNORECASE)
+RELEASE_ASSET = re.compile(r'(?:GravityPort-[0-9.]+-Windows-portable|GravityRush-PC-[0-9.]+-Windows)\.zip', re.IGNORECASE)
 UPDATE_DIR = Path(tempfile.gettempdir()) / 'gravityrush-update'
 # Updates install only over a release package (runtime in bin/); a development copy updates with git.
-IS_RELEASE = False  # GravityPort private development: no unattended/unsigned upstream updates
+IS_RELEASE = False  # Public preview v0.4.0: manual updates only; do not auto-install unsigned builds
 # Never copied over an installation by an update (the package does not hold them either): what
 # players create next to the launcher, at the top of the folder.
 USER_FILES = ('user', 'out', 'mods', 'gravityrush.ini', 'mods.json', 'mods_presets.json', 'patches.json', 'last_run.log')

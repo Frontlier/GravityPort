@@ -1,5 +1,20 @@
 # GravityPort — histórico de melhorias
 
+## v0.4.0 — prévia comunitária Windows — 24/10/2026
+
+- Primeira release pública do fork GravityPort, com README e documentação em português, créditos dos colaboradores históricos e instruções de instalação.
+- Mantida a base nativa Gravity Rush PC v0.1.8 de LucaPazienza, com código GPL-2.0-or-later e dependências atribuídas.
+- Launcher Windows/Tkinter compilado, identidade GravityPort, tradução pt-BR, dashboard de métricas, testador SDL3 e fallbacks opcionais Xbox/XInput.
+- Contagem de FPS de apresentação e frametime; limite configurável de 60 ou 120 FPS, VBlank do jogo mantido em 60 Hz.
+- FSR 3.1 integrado e FSR4 v07 Vulkan INT8 Quality/1080p com correção SDR de cores sRGB/linear, validado manualmente pelo usuário e em testes automatizados.
+- DLSS Super Resolution Vulkan testado localmente na NVIDIA RTX 5070 e integrado no código; o ZIP público **não inclui as DLLs proprietárias NVIDIA**, que exigem condições de uso próprias.
+- DLSS Frame Generation via Streamline **não está implementado**: existe apenas bootstrap experimental desativado, sem frames gerados.
+- Release portátil com arquivos de licença, checksum SHA-256, manifesto e exclusão de dumps comerciais, saves e tokens.
+- Pacote público inicia conservadoramente com 60 FPS apresentados; modo 120 permanece selecionável, sem promessa de física a 120 Hz.
+- Primeira versão distribuída como **pré-release**, sem assinatura digital e com atualizações manuais. Mais QA em outros hardwares ainda é necessário.
+
+---
+
 ## 0.1.0-lab — 24/10/2026
 
 - Repositório privado de desenvolvimento criado sem perder o histórico do upstream.

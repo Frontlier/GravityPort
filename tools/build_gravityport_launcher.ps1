@@ -1,10 +1,12 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 # Build a native, local Windows GravityPort preview; no console/game data included.
 param(
-    [ValidateSet("GravityPort Preview","GravityPort 120Hz Lab","GravityPort Main 120FPS Candidate","GravityPort Main DLSS Candidate","GravityPort Main FSR4 Candidate","GravityPort Graphics Lab","GravityPort FSR4 Color Lab")]
+    [ValidateSet("GravityPort Preview","GravityPort 120Hz Lab","GravityPort Main 120FPS Candidate","GravityPort Main DLSS Candidate","GravityPort Main FSR4 Candidate","GravityPort Graphics Lab","GravityPort FSR4 Color Lab","GravityPort Public Candidate")]
     [string]$PreviewName = "GravityPort Preview",
     [string]$GraphicsAssets = "",
-    [string]$LauncherVenv = ""
+    [string]$LauncherVenv = "",
+    [string]$RuntimeSource = "",
+    [string]$PublicFsr4Assets = ""
 )
 $ErrorActionPreference = "Stop"
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
@@ -47,7 +49,7 @@ Copy-Item -LiteralPath "$Root\launcher\gravityport.ico" -Destination $LauncherAs
 Copy-Item -LiteralPath "$Root\launcher\gravityport-background.png" -Destination $LauncherAssets
 Copy-Item -LiteralPath "$Root\launcher\fonts" -Destination (Join-Path $LauncherAssets "fonts") -Recurse -Force
 foreach ($exe in @("gravityrush-runtime.exe","gravityrush-gpu-check.exe")) {
-    $source = Join-Path $Root "out\$exe"
+    $source = if ($RuntimeSource) {Join-Path $RuntimeSource $exe} else {Join-Path $Root "out\$exe"}
     if (-not (Test-Path $source)) {throw "Compile runtime first: $exe missing"}
     Copy-Item -LiteralPath $source -Destination $Bin
 }
@@ -115,6 +117,25 @@ if ($GraphicsAssets) {
         Copy-Item -LiteralPath (Join-Path $Root "docs\MAIN_DLSS_LOCAL.md") -Destination $DocFolder -Force
     }
     Write-Host "LOCAL_SIGNED_DLSS_SDK" $sig.SignerCertificate.Subject
+}
+# Public preview: stage only FSR4 v07 shader models with their matching notice.
+# Never silently stage NVIDIA SDK/NGX libraries in a public archive.
+if ($PublicFsr4Assets) {
+    if ($PreviewName -ne "GravityPort Public Candidate") {
+        throw "PublicFsr4Assets is allowed only for an isolated public candidate"
+    }
+    $Models = (Resolve-Path -LiteralPath $PublicFsr4Assets).Path
+    $Notice = Join-Path $Models "LICENSE-FSR4-v07.txt"
+    if (-not (Test-Path $Notice)) {throw "FSR4 model license notice is missing"}
+    if (-not (Test-Path (Join-Path $Models "fsr4_model_v07_i8_quality_1080_pass1.spv"))) {
+        throw "The Quality/1080p SPIR-V model is missing"
+    }
+    if ($GraphicsAssets) {throw "Public model staging and proprietary GraphicsAssets must not mix"}
+    Copy-Item -LiteralPath $Models -Destination (Join-Path $Preview "fsr4_shaders") -Recurse -Force
+    $DocFolder = Join-Path $Preview "docs"
+    New-Item $DocFolder -ItemType Directory -Force | Out-Null
+    Copy-Item (Join-Path $Root "docs\FSR4_LINEAR_COLOR_FIX.md") -Destination $DocFolder
+    Write-Host "PUBLIC_FSR4_V07_MODELS" $Models
 }
 # Direct-play GravityPort.exe, with its own icon, launches the same frozen
 # GravityPort Launcher.exe with --play; no console/game files are embedded.
