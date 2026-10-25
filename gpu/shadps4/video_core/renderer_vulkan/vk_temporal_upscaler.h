@@ -255,6 +255,13 @@ private:
     float upscale_bias = 0.0f;  ///< scene texture LOD bias while upscaling
     u32 jitter_render_width = 0, jitter_output_width = 0;
     std::array<UpscaledBuffer, 3> upscaled_buffers;
+    // FSR 4 v07 requires linear RGBA16F, but Gravity Rush's dedicated
+    // scaled path supplies gamma-encoded RGBA8 after tonemapping. Two
+    // sRGB transfer-only staging images let Vulkan do the reversible
+    // sRGB EOTF/OETF without changing HUD or DLSS color formats.
+    VideoCore::UniqueImage fsr4_srgb_input;
+    VideoCore::UniqueImage fsr4_srgb_output;
+    bool compose_fsr4 = false;
     u64 upscale_serial = 0;
     vk::Format compose_format = vk::Format::eUndefined;
     u32 pre_hud_width = 0, pre_hud_height = 0, compose_width = 0, compose_height = 0;
