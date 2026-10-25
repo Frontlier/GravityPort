@@ -15,7 +15,7 @@ O GravityPort é um fork comunitário do [Gravity Rush PC Native Port](https://g
 | DLSS SR | NGX no Vulkan, modos DLAA/Quality/Balanced/Performance; timeout de inicialização adaptativo de 25 s quando instalado e selecionado | **Funcionando localmente** na RTX 5070 com DLL NVIDIA assinada; não incluída na release pública |
 | FSR 4 v07 | Modelo Vulkan INT8 de comunidade, **Quality 1080p**; sRGB de entrada decodificado para linear float e saída recodificada antes de compor o HUD | **Funcionando localmente**; o usuário confirmou a correção visual e foram observados 120 FPS apresentados |
 | DLSS-G / Streamline | Carregamento experimental assinado, teste de GPU/driver e inicialização Vulkan | **Não há interpolação funcional ou quadros gerados** |
-| Pacote público | Windows ZIP portátil, licença, versão, manifestos, hashes SHA-256 | Sujeito a teste e limitações descritas no release |
+| Pacote público | Instalador EXE Inno Setup por usuário e ZIP portátil, licenças e hashes SHA-256 | Instalação, upgrade, abertura do jogo e desinstalação testados no Windows |
 
 ### O que não foi concluído
 

@@ -31,6 +31,8 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_patches.py' -v
       - name: Verify public v0.4.0 release contract and license documentation
         run: python -m unittest discover -s tests -p 'test_public_release_contract.py' -v
+      - name: Verify Windows Inno Setup installer source and safety contract
+        run: python -m unittest discover -s tests -p 'test_windows_installer_contract.py' -v
       - name: Check native launcher Python syntax
         run: python -m py_compile launcher/gravityport_dashboard.py launcher/gravityport_metrics.py launcher/gravityport_pad_tester.py launcher/gravityport_pt.py launcher/launcher_ui.py launcher/gravityrush_launcher.py scripts/patches.py tools/verify_public_release.py tools/smoke_public_release.py
       - name: Check for console binaries in Git

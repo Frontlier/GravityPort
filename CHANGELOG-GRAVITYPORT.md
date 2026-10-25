@@ -1,5 +1,16 @@
 # GravityPort — histórico de melhorias
 
+## v0.4.0 - Instalador opcional para Windows (publicação complementar)
+
+- Adicionado instalador profissional em **Inno Setup 6**, em português brasileiro e inglês, que instala o mesmo pacote nativo da prévia 0.4.0.
+- Seleção opcional da pasta existente do jogo (confirma a presença de `eboot.bin`) sem copiar nem modificar dados comerciais.
+- Atalhos no Menu Iniciar/área de trabalho, abertura do launcher após a instalação, desinstalador Windows e instalação no perfil do usuário sem UAC.
+- Atualização segura: se existir `settings.json`, suas preferências de jogo/controle são preservadas; o `gravityrush.ini` e dados do usuário não são substituídos/removidos.
+- O compilador só aceita **a extração limpa do ZIP público SHA-256 auditado**, sem DLLs NVIDIA, saves, chaves ou arquivos temporários gerados por testes.
+- O ZIP portátil continua disponível para quem prefere não instalar. Nenhum Frame Generation foi adicionado nesta atualização.
+
+---
+
 ## v0.4.0 — prévia comunitária Windows — 24/10/2026
 
 - Primeira release pública do fork GravityPort, com README e documentação em português, créditos dos colaboradores históricos e instruções de instalação.

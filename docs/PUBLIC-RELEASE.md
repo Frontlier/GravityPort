@@ -1,5 +1,11 @@
 # GravityPort — política de release público v0.4.0
 
+**Distribuição adicional:** `GravityPort-0.4.0-Setup.exe` e `GravityPort-0.4.0-Setup.exe.sha256` fornecem um instalador Inno Setup 6 para o **mesmo payload do ZIP portátil original**. A compilação do instalador verifica o hash do ZIP, extrai os arquivos em uma pasta limpa, compara os 1.367 hashes do manifesto e recusa conteúdo comercial/NGX. O installer instala por usuário (`PrivilegesRequired=lowest`), cria atalhos, opcionalmente seleciona a pasta do jogo e preserva as preferências/saves na atualização e na desinstalação. Código: [GravityPort-Installer.iss](../packaging/windows/GravityPort-Installer.iss) e [build_windows_installer.ps1](../tools/build_windows_installer.ps1).
+
+A opção do instalador **não altera o runtime** da tag v0.4.0 nem inclui dados comerciais do jogo. Os fontes do instalador foram adicionados ao repositório após a tag v0.4.0 e permanecem públicos para auditoria; consultar o commit correspondente na branch principal. Nenhum instalador é um emulador PS4 universal.
+
+
+
 ## O que o ZIP contém
 
 - Gravidade Rush native Windows runtime baseado no port upstream, executáveis compilados e as DLLs livres necessárias (MSYS2 CLANG64/SDL3/FFmpeg, etc.).
