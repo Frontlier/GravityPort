@@ -1,66 +1,30 @@
-Gravity Rush Remastered (PS4) for PC - version 0.1.8
-====================================================
+GravityPort v0.4.0 - PREVIA PORTATIL WINDOWS
+==========================================
 
-A native PC port: the game's own code runs on your processor, with no emulator. The whole story
-has been played from start to finish with this port. Only Nvidia graphics cards have been tested
-so far.
+Projeto: https://github.com/Frontlier/GravityPort
+Download: https://github.com/Frontlier/GravityPort/releases/tag/v0.4.0
+Autor do projeto de origem: LucaPazienza (gravityrush_pc)
+Mantenedor do fork: Frontlier. GPL v2 ou posterior, com licencas de terceiros.
 
-No game files are included. You need your own copy of Gravity Rush Remastered (PS4), as an
-unpacked game folder (eboot.bin, sce_module, sce_sys), prepared with your own tools. Tested with
-the European release CUSA01113, version 01.00. Other versions may start, but the resolution and
-shadow patches only apply to that one.
+1. Descompacte GravityPort-0.4.0-Windows-portable.zip numa pasta propria.
+2. Inicie GravityPort Launcher.exe (launcher nativo Windows/Tkinter).
+3. Na pagina Jogo, selecione a pasta do seu Gravity Rush Remastered PS4
+   obtido legalmente (CUSA01113 v01.00). O jogo NAO vem no ZIP.
+4. Em Video, escolha seu modo preferido. O FSR4 v07 Vulkan Quality so
+   possui modelos para 1080p e e EXPERIMENTAL. FSR3.1 e uma alternativa.
+5. Comece com 60 FPS; pode selecionar 120 FPS apresentados se testar.
+6. Para iniciar sem janela do launcher, execute GravityPort.exe.
 
-You need
-- Windows 10 (1903 or newer) or Windows 11, 64-bit.
-- A graphics card with Vulkan 1.3 and a current driver.
+O DLSS Super Resolution foi integrado e testado em RTX 5070, mas este
+download publico NAO contem as DLLs proprietarias NVIDIA NGX e a ponte
+necessaria; esse modo nao aparecera sem componentes instalados licitamente.
+DLSS Frame Generation ainda NAO funciona e nao pode ser ativado.
 
-Start
-1. Extract this folder anywhere, for example C:\Games\gravityrush-windows (not inside the zip).
-2. Open "Gravity Rush Launcher.exe". If Windows shows "Windows protected your PC", click More info,
-   then Run anyway (the program is not signed).
-3. Game page: Browse... to your game folder (the one with eboot.bin).
-4. Press Play.
+Na primeira execucao, verifique o hash SHA256 anunciado na pagina Release.
+Nao publique jogo, saves, chaves ou firmware em GitHub Issues.
+A build nao possui assinatura digital; possiveis alertas do Windows
+devem ser avaliados pelo usuario.
 
-Graphics (Video page)
-- Anti-aliasing: FXAA (the game's own, as on the PS4), TAA, FSR 3.1, DLSS (NVIDIA RTX) or off.
-- With FSR 3.1 or DLSS, Mode: Native/DLAA, Quality, Balanced or Performance. Lower modes draw the
-  game below your screen's size and enlarge it to the screen: more FPS, still sharp.
-- With FXAA or TAA, Render resolution: from 540p to 4K. Above your screen's size it works as
-  anti-aliasing; below it, "Simple upscaler" (FSR 1.0) enlarges it.
-- Shadow quality: Standard (the game's 2048) or High (4096).
-- Anisotropic filtering, window mode, refresh rate (fullscreen), vertical sync and FPS limit.
-
-While playing
-- Insert on the keyboard, or R3 + L2 on the controller, opens the port's menu (image, performance,
-  FPS overlay).
-- Controllers (DualSense, DualShock 4, Xbox and others) and keyboard work; remap them on the
-  Controls page. The DualSense / DualShock 4 gyro aims the camera like on the PS4.
-- Touchpad: Tab (left side), Backspace (right side), the controller's View button, or hold the left
-  mouse button over the window and drag.
-
-Next time
-- "Gravity Rush.exe" starts the game straight away with the saved settings (shortcut, Steam).
-- Updates: when a new version is out, the launcher offers it as it opens and installs it if you
-  agree (it closes, replaces the program files and opens again; user\, gravityrush.ini and mods
-  stay as they are). Advanced page: "Check for updates at start" turns this off.
-- Saves, shader cache and logs: user\ next to the executables (keep it when updating).
-- Settings: gravityrush.ini next to the executables; launcher options in %APPDATA%\gravityrush-launcher.
-
-Reporting a problem
-- Press F12 when you see it: the next frames are saved in user\screenshots, and the log notes where
-  the game was. Send them with user\last_run.log and a few words on where you were in the game.
-  (Advanced page: "F12 closes the game" also closes it right after, if you prefer.)
-- Reports: https://github.com/LucaPazienza/gravityrush_pc/issues
-
-Known issues
-- Graphics glitches: press F12 when you see one and send the files.
-- Online features (PSN) are not available: the game runs as a console that is not signed in.
-
-If something goes wrong
-- Black screen at start: Advanced > Clear shader cache, then start again.
-- The game does not open: check the Log page, or send user\last_run.log with your report.
-
-This project is not affiliated with Sony Interactive Entertainment. Gravity Rush is a trademark of
-Sony Interactive Entertainment. Licensed under the GNU GPL v2 or later (LICENSE); third-party
-licenses are in THIRD-PARTY-LICENSES. Based on medievil_2019_pc_port, the God of War III native port
-(Waffle565/God-Of-War-Native-Port, FelipePrado0/gow3_pc) and the shadPS4 video core.
+Manual: README.md e docs/INSTALACAO.md
+Creditos: docs/GRAVITYPORT-CREDITS.md
+Codigo-fonte: https://github.com/Frontlier/GravityPort/tree/v0.4.0

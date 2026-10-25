@@ -1,98 +1,53 @@
-# GravityPort — desenvolvimento privado de Gravity Rush PC
+# GravityPort — implementação e estado técnico (v0.4.0)
 
-## Projeto
+O GravityPort é um fork comunitário do [Gravity Rush PC Native Port](https://github.com/LucaPazienza/gravityrush_pc), inicialmente baseado no upstream **v0.1.8** e posteriormente ampliado. O histórico Git, as licenças e a atribuição aos autores originais foram mantidos. O objetivo aqui é aprimorar **Gravity Rush Remastered**, não criar um emulador PS4 genérico.
 
-GravityPort é nosso **fork de desenvolvimento do Gravity Rush Remastered para Windows**.
-A base original e seu histórico são preservados:
-[Gravity Rush PC, por LucaPazienza](https://github.com/LucaPazienza/gravityrush_pc),
-versão original de referência `v0.1.8`, GPL-2.0-or-later.
+## Recursos com implementação confirmada
 
-O repositório privado não é uma declaração de autoria do port original.
-Mantemos os direitos e os avisos aplicáveis aos contribuidores e bibliotecas
-e só reivindicamos as melhorias de código efetivamente criadas neste trabalho.
+| Área | GravityPort v0.4.0 | Escopo da validação |
+|---|---|---|
+| Launcher Windows | Python/Tkinter compilado como aplicativo nativo, menus e pt-BR | Interface e empacotamento Windows testados |
+| Diagnóstico | Logs de FPS/frametime, p99, cache de shaders, GPU, save e controle | Testes automatizados e UI |
+| Controle Xbox | SDL3/XInput, botões e mapeamentos, giroscópio simulado opcional com L3 + analógico direito e gesto de touchpad por View + D-pad direito | Testes de código; sensibilidade/zonas mortas exigem comparação com controle real |
+| 60/120 FPS | Configuração persistente de limite de apresentação, mantendo VBlank do convidado a 60 Hz | Logs A/B e partidas do usuário; **não** significa 120 FPS de física |
+| Áudio/menus/saves | Base original preservada; backups e restauração protegidos | Campanha já jogável segundo upstream; sem novo QA integral nesta versão |
+| FSR 3.1 | Temporal upscaling Vulkan presente | Base original |
+| DLSS SR | NGX no Vulkan, modos DLAA/Quality/Balanced/Performance; timeout de inicialização adaptativo de 25 s quando instalado e selecionado | **Funcionando localmente** na RTX 5070 com DLL NVIDIA assinada; não incluída na release pública |
+| FSR 4 v07 | Modelo Vulkan INT8 de comunidade, **Quality 1080p**; sRGB de entrada decodificado para linear float e saída recodificada antes de compor o HUD | **Funcionando localmente**; o usuário confirmou a correção visual e foram observados 120 FPS apresentados |
+| DLSS-G / Streamline | Carregamento experimental assinado, teste de GPU/driver e inicialização Vulkan | **Não há interpolação funcional ou quadros gerados** |
+| Pacote público | Windows ZIP portátil, licença, versão, manifestos, hashes SHA-256 | Sujeito a teste e limitações descritas no release |
 
-**Escopo atual: apenas Gravity Rush Remastered CUSA01113 v01.00.**
-Não há intenção de iniciar outro título antes de estabilizar, testar e
-empacotar Gravity Rush.
+### O que não foi concluído
 
-## Primeira etapa: base preservada e controle Xbox
+- **DLSS Frame Generation** de verdade: ainda faltam tagging de profundidade/movimento/HUD, Vulkan swapchain, Reflex, sincronização, tokens por frame e medição dos quadros gerados.
+- Troféus do PlayStation, multiplayer/PSN e serviços online.
+- Testes de longa duração em múltiplas GPUs, todas as resoluções e campanha completa para esta revisão.
+- Garantia de física/animação correta com cap de 120 FPS; a lógica convidada continua em 60 Hz.
+- Empacotamento público das DLLs NVIDIA ou FrameGen proprietário, sem análise de licença.
+- Modelos FSR 4 Native AA, Balanced, Performance ou 1440p/4K para o SDK v07 disponível: **não instalados** na prévia.
 
-- FPS exibidos agora derivam das apresentações de frames do runtime.
-- Unidade `ms/frame` separada de FPS.
-- Controle XInput sem sensor pode simular giroscópio por `L3 + analógico direito`,
-  opcional e sem interferência com o uso normal do analógico.
-- Controle sem touchpad pode simular lado direito por `View + direcional direito`.
-- Launcher oferece opções para habilitar esses fallbacks.
-- Testes automatizados de mapeamento de botões, indicador e entrada virtual.
+## Arquitetura resumida
 
-## Etapa 0.2: launcher nativo do Windows (implementada em prévia)
+O jogo original executa código x86-64 preparado em runtime nativo. As funções PS4 são implementadas sob `src/` e a GPU utiliza a arquitetura do projeto shadPS4 com Vulkan em `gpu/`. O launcher `launcher/gravityrush_launcher.py` com `launcher/launcher_ui.py` coordena configurações, controle, backups, preparação e execução. Não é renderização via streaming de vídeo nem um navegador.
 
-Modernizar o Tkinter/Pillow existente (sem navegador/web server):
-navegação, identidade visual GravityPort, português brasileiro, área de
-diagnóstico e indicadores de estabilidade. Preservar funções existentes:
-controles, tradução, saves, mods, FSR/DLSS, resolução, atalhos, autoupdate.
-Empacotar via PyInstaller depois de validar o comportamento da interface.
+O FSR 4 é acionado no upscaler dedicado de Gravity Rush no caminho corrigido `vk_temporal_upscaler.cpp`. Para a cena SDR de upscaling, o novo pipeline faz cópia byte a byte de UNORM→SRGB, blit SRGB→RGBA16F linear, processamento FSR 4 e blit de RGBA16F→SRGB, finalizando com composição do HUD. A conversão não é aplicada ao DLSS.
 
-## Laboratório experimental de FPS
+## Versão pública e variantes
 
-O trabalho de 120 FPS é mantido na branch `feature/high-refresh-120-lab`.
-Leia [o laboratório de 120 FPS](docs/HIGH_REFRESH_LAB.md) para comparar
-as medições locais, os riscos à física e o procedimento de rollback.
-O build experimental não modifica a versão estável nem os saves.
+O aplicativo de desenvolvimento local do Frontlier contém DLLs NGX assinadas da NVIDIA, usadas nos testes aprovados. A **release pública** é **deliberadamente diferente**: não inclui componentes proprietários NGX/Streamline, arquivos do jogo ou saves pessoais. DLSS Super Resolution aparece apenas quando seus componentes opcionais forem instalados localmente; não constitui promessa de que essa DLL possa ser redistribuída sob GPL.
 
-## Especificação de qualidade
+A prévia pública inclui FSR 3.1 e o modelo **FSR4 v07 Quality/1080p** com aviso de origem/licença do modelo. Trata-se da porta experimental comunitária para Vulkan, não do AMD FSR 4.1.1 oficial, que não é equivalente. O limite conservador inicial no download público é **60 FPS**, ajustável em Vídeo para 120 FPS.
 
-1. Boot e menu reproduzíveis em múltiplas execuções.
-2. Controle Xbox, DualSense e teclado/mouse: todos os comandos necessários
-   testados em gameplay, não somente em testes simulados.
-3. Áudio, cutscenes, salvamento/restauração e estabilidade testados.
-4. Frametime p95/p99 e spikes monitorados em cenas comparáveis.
-5. Resoluções 1080p/1440p/4K validadas; não prometer FPS sem medição.
-6. Launcher .exe e instalador Windows, com licenças e documentação.
+## Evidências e qualidade
 
-## Código, dados e licenças
+- Build Windows com Clang/MSYS2, teste PyInstaller nativo, smoke tests que executam o jogo a partir de instalação separada, testes Python e GitHub Actions.
+- A correção FSR4 foi testada com o modelo Quality real, sem fallback para FSR 3.1; mesmo pacote verificado com DLSS NGX.
+- O usuário forneceu captura de cores incorretas e confirmou a correção visual em gameplay.
+- Em registros estáveis foram observados cerca de **120 FPS apresentados**, 8,3 ms/frame. São medições locais específicas; não se devem extrapolar para todos os dispositivos/cenas.
+- A zona morta de pequenos movimentos do analógico esquerdo foi investigada; não houve alteração de código do SDL3/analógico entre os pacotes investigados. Diagnóstico físico ainda recomendado.
 
-NÃO publicar `eboot.bin`, arquivos `.pkg`, `.psarc`, `.prx`, saves, chaves,
-dados pessoais, caches de shaders ou backups do usuário.
-O jogo original deve ser fornecido separadamente pelo usuário autorizado.
-GPL-2.0-or-later, sem alterar os avisos de direitos de terceiros.
-Submódulos mantêm suas licenças e commits originais.
+## Códigos, dados e contribuições
 
-### Submódulo FSR4 local
+A origem do software e a autoria dos colaboradores constam em [GRAVITYPORT-CREDITS.md](docs/GRAVITYPORT-CREDITS.md) e no histórico Git. O fork preserva a GPL-2.0-or-later; módulos e submódulos têm avisos adicionais. Arquivos de jogos, console keys, saves, cache e DLLs NVIDIA não pertencem ao repositório nem ao pacote público.
 
-As alterações opcionais de profiling que já existiam no checkout local do
-FSR-Vulkan foram preservadas como patch em
-`patches/fsr4-local-profiling.patch` para evitar alterar a referência do
-submódulo sem publicar um commit correspondente.
-A aplicação é opcional via `tools/apply_fsr4_local_patch.py`; o jogo não
-depende do profiling para rodar.
-
-## Organização de repositórios
-
-- `origin`: `https://github.com/Frontlier/GravityPort.git` (**privado**).
-- `upstream`: `https://github.com/LucaPazienza/gravityrush_pc.git` (leitura).
-- `main`: integração estável e validada; novas melhorias versionadas em
-  commits separados para revisão. Não dar push ao upstream sem aprovação.
-
-O fork é mantido como repositório separado; a cópia original já funcional em
-`Documents/Gravity Rush PC Port/gravityrush_pc` não será sobrescrita.
-
-
-## Laboratório de upscaling DLSS / FSR 4 (branch experimental)
-
-O trabalho de upscaling NVIDIA DLSS Super Resolution e FSR 4 v07
-Vulkan está isolado na branch `feature/dlss-fg-fsr4-vulkan`.
-Em testes de boot/demo no Frontlier, os dois recursos iniciaram seus
-processadores reais e registraram 120 FPS apresentados após aquecimento.
-Ainda é necessário comparar a imagem em gameplay. A implementação
-**não está habilitada no GravityPort principal**.
-
-O gerador de quadros DLSS-G via Vulkan/Streamline **ainda não foi
-implementado** e não deve ser confundido com DLSS Super Resolution.
-A NVIDIA oferece o Smooth Motion no driver para títulos Vulkan como
-solução provisória, mas é uma tecnologia diferente do DLSS-G.
-
-Detalhes: `docs/GRAPHICS_LAB_DLSS_FSR4.md` e
-`docs/DLSS_FRAMEGEN_VULKAN.md`. O aplicativo nativo local foi criado
-separadamente em `out/GravityPort Graphics Lab` e precisa de DLLs
-NVIDIA assinadas e modelos FSR4 locais que **não são versionados**.
+Para executar, leia [INSTALACAO.md](docs/INSTALACAO.md). Para reproduzir o empacotamento, leia [PUBLIC-RELEASE.md](docs/PUBLIC-RELEASE.md). Para histórico por etapa, consulte [CHANGELOG-GRAVITYPORT.md](CHANGELOG-GRAVITYPORT.md).
